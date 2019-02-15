@@ -23,3 +23,26 @@ Such organizations typically make heavy use of groups - a group may indicate for
 Membership in a group usually means that one should have access to a shared Nextcloud folder, Rocket.Chat room, calendar, and access rights.
 This would mean adding a corresponding LDAP group memberships, and configuring those services either according to the LDAP setup, or according to their REST APIs.
 This project aims to do exactly that - according to a predefined schema, enable addition of new users, modification and removals in an automated way, hiding the complexity of the REST API and LDAP schemas behind a sleek interface.
+
+
+## Usage
+
+### Command-line client
+
+You can use the client to connect to a nextcloud instance and perform basic operations.
+For example, the snippet below adds a new user `alice` to groups `accounting` and `users`:
+
+```
+cd src
+python cli/client.py creds.ini add_user alice alices_password -g accounting -g users
+```
+
+The `creds.ini` file contains credential info, typically like this:
+
+```ini
+[credentials]
+
+url = http://localhost
+user = uname
+password = pass
+```
