@@ -46,3 +46,28 @@ url = http://localhost
 user = uname
 password = pass
 ```
+
+### Web application
+
+Flask on back-end which serves single page vue.js front-end and provides api
+
+#### Build setup
+
+```
+cd src/web/teap/frontend/
+npm install
+
+# serve vue.js application with reload on 8081 port
+npm run dev
+
+# build source with minification
+npm run build
+
+# install python requirements
+pip install -r requirements.in
+
+# run flask dev server on 5000 port 
+cd /src/web/
+python wsgi.py
+
+```
