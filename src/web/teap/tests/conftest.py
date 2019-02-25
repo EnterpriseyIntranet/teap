@@ -29,6 +29,13 @@ def testapp(app):
 
 
 @pytest.fixture
+def client(app):
+    """ Client to send requests """
+    client = app.test_client()
+    yield client
+
+
+@pytest.fixture
 def db(app):
     """A database for the tests."""
     _db.app = app

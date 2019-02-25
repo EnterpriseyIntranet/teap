@@ -39,9 +39,9 @@ export default {
   },
   methods: {
     getUsers () {
-      axios.get('http://localhost:5000/api/users')
+      axios.get('http://localhost:5000/api/users/')
         .then(response => {
-          this.users = response.data.users
+          this.users = response.data.data.users
         }
         )
         .catch(error =>
@@ -77,7 +77,7 @@ export default {
         username: this.newUsername,
         password: this.newPassword
       }
-      axios.post('http://localhost:5000/api/users', JSON.stringify(data))
+      axios.post('http://localhost:5000/api/users/', JSON.stringify(data))
         .then(response => {
           if (response.data.status) {
             console.log('successfully created!')
