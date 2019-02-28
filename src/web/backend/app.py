@@ -1,11 +1,11 @@
 """The app module, containing the app factory function."""
 from flask import Flask, render_template
 
-from teap import commands, public, user, core, nextcloud
-from teap.extensions import bcrypt, cache, csrf_protect, db, login_manager, migrate
+from backend import commands, public, user, core, nextcloud
+from backend.extensions import bcrypt, cache, csrf_protect, db, login_manager, migrate
 
 
-def create_app(config_object='teap.settings'):
+def create_app(config_object='backend.settings'):
     """An application factory, as explained here: http://flask.pocoo.org/docs/patterns/appfactories/.
 
     :param config_object: The configuration object to use.

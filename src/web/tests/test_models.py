@@ -3,7 +3,7 @@ import datetime as dt
 
 import pytest
 
-from teap.user.models import Role, User
+from backend.user.models import Role, User
 
 from .factories import UserFactory
 

@@ -3,8 +3,8 @@ import datetime as dt
 
 from flask_login import UserMixin
 
-from teap.database import Column, Model, SurrogatePK, db, reference_col, relationship
-from teap.extensions import bcrypt
+from backend.database import Column, Model, SurrogatePK, db, reference_col, relationship
+from backend.extensions import bcrypt
 
 
 class Role(SurrogatePK, Model):

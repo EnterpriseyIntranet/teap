@@ -1,6 +1,6 @@
 """Test forms."""
 
-from teap.public.forms import LoginForm
+from backend.public.forms import LoginForm
 
 
 class TestLoginForm:

@@ -2,8 +2,8 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_user, logout_user, login_required
 
-from teap.public.forms import LoginForm
-from teap.utils import flash_errors
+from backend.public.forms import LoginForm
+from backend.utils import flash_errors
 
 blueprint = Blueprint('public', __name__, template_folder='./templates')
 

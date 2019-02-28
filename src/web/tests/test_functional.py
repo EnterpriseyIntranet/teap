@@ -4,7 +4,7 @@ See: http://webtest.readthedocs.org/
 """
 from flask import url_for
 
-from teap.user.models import User
+from backend.user.models import User
 
 from .factories import UserFactory
 

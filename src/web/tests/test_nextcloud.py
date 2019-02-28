@@ -6,14 +6,14 @@ from unittest.mock import patch, MagicMock
 @pytest.fixture(scope='function')
 def nextcloud_mock():
     mock = MagicMock()
-    with patch('teap.nextcloud.api.NextCloudMixin.nextcloud', mock) as nextcloud_mock:
+    with patch('backend.nextcloud.api.NextCloudMixin.nextcloud', mock) as nextcloud_mock:
         yield nextcloud_mock
 
 
 @pytest.fixture(scope='function', autouse=True)
 def nxc_response_mock():
     mock = MagicMock(return_value="{}")
-    with patch('teap.nextcloud.api.NextCloudMixin.nxc_response', mock) as nxc_response:
+    with patch('backend.nextcloud.api.NextCloudMixin.nxc_response', mock) as nxc_response:
         yield nxc_response
 
 

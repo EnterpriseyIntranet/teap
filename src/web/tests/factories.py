@@ -2,8 +2,8 @@
 from factory import PostGenerationMethodCall, Sequence
 from factory.alchemy import SQLAlchemyModelFactory
 
-from teap.database import db
-from teap.user.models import User
+from backend.database import db
+from backend.user.models import User
 
 
 class BaseFactory(SQLAlchemyModelFactory):
