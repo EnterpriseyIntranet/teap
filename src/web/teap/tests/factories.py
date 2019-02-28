@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Factories to help in tests."""
 from factory import PostGenerationMethodCall, Sequence
 from factory.alchemy import SQLAlchemyModelFactory

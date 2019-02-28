@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, current_app
 from flask.views import MethodView
 
 from nextcloud import NextCloud
@@ -12,9 +12,9 @@ class NextCloudMixin:
     def nextcloud(self):
         """ Get nextcloud instance """
         # tmp mock nextcloud credentials
-        url = 'http://localhost:8080'
-        username = 'admin'
-        password = 'admin'
+        url = current_app.config['NEXTCLOUD_HOST']
+        username = current_app.config['NEXTCLOUD_USER']
+        password = current_app.config['NEXTCLOUD_PASSWORD']
         if url is None or username is None or password is None:
             return abort(400)
         nxc = NextCloud(endpoint=url, user=username, password=password)

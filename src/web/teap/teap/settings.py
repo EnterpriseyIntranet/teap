@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Application configuration.
 
 Most configuration is set via environment variables.
@@ -20,3 +19,8 @@ DEBUG_TB_ENABLED = DEBUG
 DEBUG_TB_INTERCEPT_REDIRECTS = False
 CACHE_TYPE = 'simple'  # Can be "memcached", "redis", etc.
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+# NEXTCLOUD
+NEXTCLOUD_HOST = env.str('NEXTCLOUD_HOST')
+NEXTCLOUD_USER = env.str('NEXTCLOUD_USER')
+NEXTCLOUD_PASSWORD = env.str("NEXTCLOUD_PASSWORD")
