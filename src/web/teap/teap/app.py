@@ -2,7 +2,7 @@
 from flask import Flask, render_template
 
 from teap import commands, public, user, core, nextcloud
-from teap.extensions import bcrypt, cache, csrf_protect, db, debug_toolbar, login_manager, migrate
+from teap.extensions import bcrypt, cache, csrf_protect, db, login_manager, migrate
 
 
 def create_app(config_object='teap.settings'):
@@ -27,7 +27,6 @@ def register_extensions(app):
     db.init_app(app)
     # csrf_protect.init_app(app) tmp disable until set up in vue
     login_manager.init_app(app)
-    debug_toolbar.init_app(app)
     migrate.init_app(app, db)
     return None
 
