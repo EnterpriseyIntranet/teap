@@ -47,12 +47,10 @@ class UserViewSet(NextCloudMixin,
         if not all([username, password]):
             return abort(400)
         res = self.nextcloud.add_user(username, password)
-        return self.nxc_response(res)
+        return self.nxc_response(res), 201
 
     def delete(self, username):
         """ Delete user """
-        if not username:
-            return abort(400)
         res = self.nextcloud.delete_user(username)
         return self.nxc_response(res)
 
@@ -70,8 +68,44 @@ class UserViewSet(NextCloudMixin,
         return self.nxc_response(res)
 
 
+class GroupViewSet(NextCloudMixin,
+                   MethodView):
+
+    def get(self, group_id=None, action=None):
+        """ List groups """
+        if group_id is None and action is None:
+            res = self.nextcloud.get_groups()
+            return self.nxc_response(res)
+        elif group_id and action is None:
+            res = self.nextcloud.get_group(group_id)
+            return self.nxc_response(res)
+        elif group_id and action == "subadmins":
+            res = self.nextcloud.get_subadmins(group_id)
+            return self.nxc_response(res)
+        else:
+            return abort(400)
+
+    def post(self):
+        """ Create group """
+        group_name = request.json.get('group_name')
+        if not group_name:
+            return abort(400)
+        res = self.nextcloud.add_group(group_name)
+        return self.nxc_response(res), 201
+
+    def delete(self, group_id):
+        """ Delete group """
+        res = self.nextcloud.delete_group(group_id)
+        return self.nxc_response(res), 202
+
+
 user_view = UserViewSet.as_view('users_api')
 blueprint.add_url_rule('/users/', view_func=user_view, methods=['GET', 'POST'])
 blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['GET', 'DELETE'])
 blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['PATCH'])
 blueprint.add_url_rule('/users/<username>/<action>', view_func=user_view, methods=['PATCH'])
+
+group_view = GroupViewSet.as_view('groups_api')
+blueprint.add_url_rule('/groups/', view_func=group_view, methods=["GET", "POST"])
+blueprint.add_url_rule('/groups/<int:group_id>', view_func=group_view, methods=["GET", "DELETE"])
+blueprint.add_url_rule('/groups/<int:group_id>/<action>', view_func=group_view, methods=["GET"])
