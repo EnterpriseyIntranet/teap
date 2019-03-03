@@ -1,8 +1,7 @@
 <template>
   <div id="app">
     <nav>
-      <img src="./assets/logo.png" class="d-inline-block align-top logo" alt="">
-      <router-link to="/">Home</router-link>
+      <router-link to="/"><img src="./assets/logo.png" class="d-inline-block align-top logo" alt=""></router-link>
     </nav>
     <router-view/>
   </div>

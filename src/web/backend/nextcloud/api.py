@@ -71,16 +71,16 @@ class UserViewSet(NextCloudMixin,
 class GroupViewSet(NextCloudMixin,
                    MethodView):
 
-    def get(self, group_id=None, action=None):
+    def get(self, group_name=None, action=None):
         """ List groups """
-        if group_id is None and action is None:
+        if group_name is None and action is None:
             res = self.nextcloud.get_groups()
             return self.nxc_response(res)
-        elif group_id and action is None:
-            res = self.nextcloud.get_group(group_id)
+        elif group_name and action is None:
+            res = self.nextcloud.get_group(group_name)
             return self.nxc_response(res)
-        elif group_id and action == "subadmins":
-            res = self.nextcloud.get_subadmins(group_id)
+        elif group_name and action == "subadmins":
+            res = self.nextcloud.get_subadmins(group_name)
             return self.nxc_response(res)
         else:
             return abort(400)
@@ -93,9 +93,9 @@ class GroupViewSet(NextCloudMixin,
         res = self.nextcloud.add_group(group_name)
         return self.nxc_response(res), 201
 
-    def delete(self, group_id):
+    def delete(self, group_name):
         """ Delete group """
-        res = self.nextcloud.delete_group(group_id)
+        res = self.nextcloud.delete_group(group_name)
         return self.nxc_response(res), 202
 
 
@@ -107,5 +107,5 @@ blueprint.add_url_rule('/users/<username>/<action>', view_func=user_view, method
 
 group_view = GroupViewSet.as_view('groups_api')
 blueprint.add_url_rule('/groups/', view_func=group_view, methods=["GET", "POST"])
-blueprint.add_url_rule('/groups/<int:group_id>', view_func=group_view, methods=["GET", "DELETE"])
-blueprint.add_url_rule('/groups/<int:group_id>/<action>', view_func=group_view, methods=["GET"])
+blueprint.add_url_rule('/groups/<group_name>', view_func=group_view, methods=["GET", "DELETE"])
+blueprint.add_url_rule('/groups/<group_name>/<action>', view_func=group_view, methods=["GET"])
