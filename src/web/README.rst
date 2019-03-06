@@ -8,10 +8,8 @@ TEAP - The Enterprisey Administration Project
 Quickstart
 ----------
 
-Run the following commands to bootstrap your environment ::
+Run the following commands from current directory to bootstrap your environment for web project::
 
-    git clone https://github.com/EnterpriseyIntranet/teap
-    cd teap
     pip install -r requirements/dev.txt
     cp .env.example .env
     cd teap/frontend
@@ -25,7 +23,6 @@ database tables and perform the initial migration ::
     flask db init
     flask db migrate
     flask db upgrade
-    npm start
 
 
 Deployment
