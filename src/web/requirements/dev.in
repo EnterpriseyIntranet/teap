@@ -1,0 +1,8 @@
+-r prod.in
+
+# Testing
+pytest
+WebTest
+factory-boy
+
+

@@ -46,3 +46,7 @@ url = http://localhost
 user = uname
 password = pass
 ```
+
+### Web Application
+
+Check README.md in `src/web` directory

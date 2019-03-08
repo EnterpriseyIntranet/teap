@@ -1,0 +1,37 @@
+# Everything needed in production
+
+# Flask
+Flask
+MarkupSafe
+Werkzeug
+Jinja2
+itsdangerous
+click
+
+# Database
+Flask-SQLAlchemy
+psycopg2
+SQLAlchemy
+
+# Migrations
+Flask-Migrate
+
+# Forms
+Flask-WTF
+WTForms
+
+# Deployment
+gunicorn
+
+# Auth
+Flask-Login
+Flask-Bcrypt
+
+# Caching
+Flask-Caching
+
+# Environment variable parsing
+environs
+
+# Nextcloud
+-e git://github.com/EnterpriseyIntranet/nextcloud-API#egg=nextcloud
