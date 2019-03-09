@@ -68,6 +68,25 @@ class UserViewSet(NextCloudMixin,
         return self.nxc_response(res)
 
 
+class UserGroupViewSet(NextCloudMixin,
+                       MethodView):
+
+    def post(self, username):
+        """ Add user to group """
+        group_name = request.json.get('group_name')
+        if not group_name:
+            return abort(400)
+        if not self.nextcloud.get_group(group_name).is_ok:
+            return jsonify({"message": "group not found"}), 404
+        res = self.nextcloud.add_to_group(username, group_name)
+        return self.nxc_response(res)
+
+    def delete(self, username, group_name):
+        """ Remove user from group """
+        res = self.nextcloud.remove_from_group(username, group_name)
+        return self.nxc_response(res)
+
+
 class GroupViewSet(NextCloudMixin,
                    MethodView):
 
@@ -104,6 +123,10 @@ blueprint.add_url_rule('/users/', view_func=user_view, methods=['GET', 'POST'])
 blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['GET', 'DELETE'])
 blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['PATCH'])
 blueprint.add_url_rule('/users/<username>/<action>', view_func=user_view, methods=['PATCH'])
+
+user_group_view = UserGroupViewSet.as_view('user_groups_api')
+blueprint.add_url_rule('/users/<username>/groups/', view_func=user_group_view, methods=['POST'])
+blueprint.add_url_rule('/users/<username>/groups/<group_name>', view_func=user_group_view, methods=['DELETE'])
 
 group_view = GroupViewSet.as_view('groups_api')
 blueprint.add_url_rule('/groups/', view_func=group_view, methods=["GET", "POST"])

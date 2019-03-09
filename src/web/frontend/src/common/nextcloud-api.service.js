@@ -14,8 +14,18 @@ export const NxcUsersService = {
   }
 }
 
+export const NxcUserGroupsService = {
+  post (username, groupName) {
+    return ApiService.post(`users/${username}/groups`, {'group_name': groupName})
+  },
+
+  delete (username, groupName) {
+    return ApiService.delete(`users/${username}/groups`, groupName)
+  }
+}
+
 export const NxcGroupsService = {
-  get (slug, action) {
+  get (slug) {
     return ApiService.get('groups', slug)
   },
 
@@ -28,4 +38,4 @@ export const NxcGroupsService = {
   }
 }
 
-export default { NxcUsersService, NxcGroupsService }
+export default { NxcUsersService, NxcGroupsService, NxcUserGroupsService }

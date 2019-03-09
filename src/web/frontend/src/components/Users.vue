@@ -6,7 +6,7 @@
       <p>List:</p>
       <ul>
         <li v-for="user in users" :key="user">
-          {{ user }} <button v-on:click="deleteUser(user)">delete</button>
+          <router-link :to="{name: 'user', params: {id: user}}">{{ user }}</router-link> <button v-on:click="deleteUser(user)">delete</button>
         </li>
       </ul>
     </div>

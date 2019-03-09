@@ -1,7 +1,7 @@
 <template>
   <div>
-    <Users></Users>
-    <Groups></Groups>
+    <users></users>
+    <groups></groups>
   </div>
 </template>
 

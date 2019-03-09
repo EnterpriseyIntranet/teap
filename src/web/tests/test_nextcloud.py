@@ -67,6 +67,23 @@ class TestNextCloudUserApi:
         nextcloud_mock.disable_user.assert_called_once_with('admin')
 
 
+class TestNextCloudUserGroupsApi:
+
+    def test_add_to_group(self, client, nextcloud_mock):
+        res = client.post('/api/users/admin/groups/', json={'group_name': 'blah'})
+
+        # asserts
+        nextcloud_mock.add_to_group.assert_called_once_with('admin', 'blah')
+        assert res.status_code == 200
+
+    def test_remove_from_group(self, client, nextcloud_mock):
+        res = client.delete('/api/users/admin/groups/blah')
+
+        # asserts
+        nextcloud_mock.remove_from_group.assert_called_once_with('admin', 'blah')
+        assert res.status_code == 200
+
+
 class TestNextCloudGroupsApi:
 
     def test_list_users(self, client, nextcloud_mock, nxc_response_mock):
@@ -76,10 +93,10 @@ class TestNextCloudGroupsApi:
         nextcloud_mock.get_groups.assert_called_once_with()
 
     def test_get_group(self, client, nextcloud_mock, nxc_response_mock):
-        res = client.get('/api/groups/5')
+        res = client.get('/api/groups/groupname')
         # asserts
         assert res.status_code == 200
-        nextcloud_mock.get_group.assert_called_once_with(5)
+        nextcloud_mock.get_group.assert_called_once_with('groupname')
         assert nxc_response_mock.assert_called_once
 
     def test_add_group(self, client, nextcloud_mock):
@@ -90,18 +107,18 @@ class TestNextCloudGroupsApi:
         nextcloud_mock.add_group.assert_called_once_with(group_name)
 
     def test_delete_user(self, client, nextcloud_mock):
-        res = client.delete('/api/groups/5')
+        res = client.delete('/api/groups/groupname')
         # asserts
         assert res.status_code == 202
-        nextcloud_mock.delete_group.assert_called_once_with(5)
+        nextcloud_mock.delete_group.assert_called_once_with('groupname')
 
         # delete without username
         res = client.delete('/api/groups/')
         assert res.status_code == 405
 
     def test_get_group_subadmins(self, client, nextcloud_mock):
-        res = client.get('/api/groups/5/subadmins')
+        res = client.get('/api/groups/groupname/subadmins')
 
         # asserts
         assert res.status_code == 200
-        nextcloud_mock.get_subadmins.assert_called_once_with(5)
+        nextcloud_mock.get_subadmins.assert_called_once_with('groupname')

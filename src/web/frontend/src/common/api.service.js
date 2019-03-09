@@ -21,7 +21,7 @@ const ApiService = {
     return Vue.axios.post(`${resource}/`, params)
   },
 
-  update (resource, slug, params) {
+  update (resource, slug = '', params) {
     return Vue.axios.put(`${resource}/${slug}`, params)
   },
 
@@ -29,7 +29,7 @@ const ApiService = {
     return Vue.axios.put(`${resource}`, params)
   },
 
-  delete (resource, slug) {
+  delete (resource, slug = '') {
     return Vue.axios.delete(`${resource}/${slug}`).catch(error => {
       throw new Error(error)
     })
