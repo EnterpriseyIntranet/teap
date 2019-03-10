@@ -1,20 +1,17 @@
 <template>
     <div>
-      <user-detail v-bind:id="id"></user-detail>
+      <group-detail v-bind:id="id"></group-detail>
     </div>
 </template>
 
 <script>
-import UserDetail from '@/components/UserDetail.vue'
+import GroupDetail from '@/components/GroupDetail.vue'
 
 export default {
   name: 'User',
   props: ['id'],
   components: {
-    UserDetail
-  },
-  created () {
-    console.log(this.id)
+    GroupDetail
   }
 }
 </script>

@@ -104,18 +104,33 @@ class GroupViewSet(NextCloudMixin,
         else:
             return abort(400)
 
-    def post(self):
+    def post(self, group_name=None):
         """ Create group """
-        group_name = request.json.get('group_name')
-        if not group_name:
-            return abort(400)
-        res = self.nextcloud.add_group(group_name)
-        return self.nxc_response(res), 201
+        if group_name:  # create subadmin
+            username = request.json.get('username')
+            if not username:
+                return abort(400)
+            if not self.nextcloud.get_group(group_name).is_ok:
+                return jsonify({"message": "group not found"}), 404
+            res = self.nextcloud.create_subadmin(username, group_name)
+            return self.nxc_response(res), 201
+        else:  # create group
+            group_name = request.json.get('group_name')
+            if not group_name:
+                return abort(400)
+            res = self.nextcloud.add_group(group_name)
+            return self.nxc_response(res), 201
 
-    def delete(self, group_name):
+    def delete(self, group_name, username=None):
         """ Delete group """
-        res = self.nextcloud.delete_group(group_name)
-        return self.nxc_response(res), 202
+        if username:  # delete subadmin
+            if not self.nextcloud.get_group(group_name).is_ok:
+                return jsonify({"message": "group not found"}), 404
+            res = self.nextcloud.remove_subadmin(username, group_name)
+            return self.nxc_response(res), 201
+        else:
+            res = self.nextcloud.delete_group(group_name)
+            return self.nxc_response(res), 202
 
 
 user_view = UserViewSet.as_view('users_api')
@@ -132,3 +147,5 @@ group_view = GroupViewSet.as_view('groups_api')
 blueprint.add_url_rule('/groups/', view_func=group_view, methods=["GET", "POST"])
 blueprint.add_url_rule('/groups/<group_name>', view_func=group_view, methods=["GET", "DELETE"])
 blueprint.add_url_rule('/groups/<group_name>/<action>', view_func=group_view, methods=["GET"])
+blueprint.add_url_rule('/groups/<group_name>/subadmins', view_func=group_view, methods=["POST", "DELETE"])
+blueprint.add_url_rule('/groups/<group_name>/subadmins/<username>', view_func=group_view, methods=["DELETE"])

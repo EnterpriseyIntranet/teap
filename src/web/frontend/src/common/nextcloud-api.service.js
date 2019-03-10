@@ -15,8 +15,9 @@ export const NxcUsersService = {
 }
 
 export const NxcUserGroupsService = {
-  post (username, groupName) {
-    return ApiService.post(`users/${username}/groups`, {'group_name': groupName})
+  post (username, groupName, action = '') {
+    let resource = action ? `users/${username}/groups/subadmins` : `users/${username}/groups`
+    return ApiService.post(resource, {'group_name': groupName})
   },
 
   delete (username, groupName) {
@@ -25,7 +26,8 @@ export const NxcUserGroupsService = {
 }
 
 export const NxcGroupsService = {
-  get (slug) {
+  get (slug, action = '') {
+    slug = action ? `${slug}/${action}` : slug
     return ApiService.get('groups', slug)
   },
 
@@ -35,7 +37,16 @@ export const NxcGroupsService = {
 
   delete (slug) {
     return ApiService.delete('groups', slug)
+  },
+
+  createSubadmin (user, group) {
+    return ApiService.post(`groups/${group}/subadmins`, {username: user})
+  },
+
+  deleteSubadmin (user, group) {
+    return ApiService.delete(`groups/${group}/subadmins`, user)
   }
+
 }
 
 export default { NxcUsersService, NxcGroupsService, NxcUserGroupsService }

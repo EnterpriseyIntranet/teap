@@ -73,8 +73,18 @@ class TestNextCloudUserGroupsApi:
         res = client.post('/api/users/admin/groups/', json={'group_name': 'blah'})
 
         # asserts
+        nextcloud_mock.get_group.assert_called_once_with('blah')
         nextcloud_mock.add_to_group.assert_called_once_with('admin', 'blah')
         assert res.status_code == 200
+
+    def test_add_to_unreal_group(self, client, nextcloud_mock):
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
+        res = client.post('/api/users/admin/groups/', json={'group_name': 'blah'})
+
+        # asserts
+        nextcloud_mock.get_group.assert_called_once_with('blah')
+        assert not nextcloud_mock.add_to_group.called
+        assert res.status_code == 404
 
     def test_remove_from_group(self, client, nextcloud_mock):
         res = client.delete('/api/users/admin/groups/blah')
@@ -122,3 +132,39 @@ class TestNextCloudGroupsApi:
         # asserts
         assert res.status_code == 200
         nextcloud_mock.get_subadmins.assert_called_once_with('groupname')
+
+    def test_add_subadmin_to_unreal_group(self, client, nextcloud_mock):
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
+        res = client.post('/api/groups/qwe/subadmins', json={'username': 'admin'})
+
+        # asserts
+        nextcloud_mock.get_group.assert_called_once_with('qwe')
+        assert not nextcloud_mock.add_to_group.called
+        assert not nextcloud_mock.create_subadmin.called
+        assert res.status_code == 404
+
+    def test_add_subadmin_to_group(self, client, nextcloud_mock):
+        res = client.post('/api/groups/asd/subadmins', json={'username': 'admin'})
+
+        # asserts
+        nextcloud_mock.get_group.assert_called_once_with('asd')
+        nextcloud_mock.create_subadmin.assert_called_once_with('admin', 'asd')
+        assert res.status_code == 201
+
+    def test_delete_subadmin_from_unreal_group(self, client, nextcloud_mock):
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
+        res = client.delete('/api/groups/qwe/subadmins/admin')
+
+        # asserts
+        nextcloud_mock.get_group.assert_called_once_with('qwe')
+        assert not nextcloud_mock.add_to_group.called
+        assert not nextcloud_mock.remove_subadmin.called
+        assert res.status_code == 404
+
+    def test_delete_subadmin_from_group(self, client, nextcloud_mock):
+        res = client.delete('/api/groups/asd/subadmins/admin')
+
+        # asserts
+        nextcloud_mock.get_group.assert_called_once_with('asd')
+        nextcloud_mock.remove_subadmin.assert_called_once_with('admin', 'asd')
+        assert res.status_code == 201

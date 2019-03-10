@@ -6,7 +6,7 @@
       <p>List:</p>
       <ul>
         <li v-for="group in groups" :key="group">
-          {{ group }} <button v-on:click="deleteGroup(group)">delete</button>
+          <router-link :to="{name: 'group', params: {id: group}}">{{ group }}</router-link> <button v-on:click="deleteGroup(group)">delete</button>
         </li>
       </ul>
     </div>
@@ -46,23 +46,24 @@ export default {
         )
     },
     deleteGroup (group) {
-      if (confirm('Are you sure you want to delete this group?')) {
-        NxcGroupsService.delete(group)
-          .then(response => {
-            if (response.data.status) {
-              console.log('successfully deleted')
-            } else {
-              console.log('failed to delete')
-            }
-          })
-          .catch(error => {
-            console.log('failed to delete', error)
-          })
-          .finally(response => {
-            console.log('finally')
-            this.getGroups()
-          })
+      if (!confirm('Are you sure you want to delete this group?')) {
+        return
       }
+      NxcGroupsService.delete(group)
+        .then(response => {
+          if (response.data.status) {
+            console.log('successfully deleted')
+          } else {
+            console.log('failed to delete')
+          }
+        })
+        .catch(error => {
+          console.log('failed to delete', error)
+        })
+        .finally(response => {
+          console.log('finally')
+          this.getGroups()
+        })
     },
 
     createGroup () {

@@ -12,6 +12,7 @@ def create_app(config_object='backend.settings'):
     """
     app = Flask(__name__.split('.')[0], static_folder='../dist/static', template_folder='../dist')
     app.config.from_object(config_object)
+    app.url_map.strict_slashes = False
     register_extensions(app)
     register_blueprints(app)
     register_errorhandlers(app)
