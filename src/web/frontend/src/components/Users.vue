@@ -1,11 +1,12 @@
 <template>
   <div>
+    <h2>Users: </h2>
     <!-- Users list -->
     <div>
-      <p>Users list:</p>
+      <p>List:</p>
       <ul>
         <li v-for="user in users" :key="user">
-          {{ user }} <button v-on:click="deleteUser(user)">delete</button>
+          <router-link :to="{name: 'user', params: {id: user}}">{{ user }}</router-link> <button v-on:click="deleteUser(user)">delete</button>
         </li>
       </ul>
     </div>
@@ -27,7 +28,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import { NxcUsersService } from '../common/nextcloud-api.service.js'
 
 export default {
   data () {
@@ -39,7 +40,7 @@ export default {
   },
   methods: {
     getUsers () {
-      axios.get('http://localhost:5000/api/users/')
+      NxcUsersService.get()
         .then(response => {
           this.users = response.data.data.users
         }
@@ -49,27 +50,27 @@ export default {
         )
     },
     deleteUser (user) {
-      if (confirm('Are you sure you want to delete this user?')) {
-        axios.delete(`http://localhost:5000/api/users/${user}`)
-          .then(response => {
-            if (response.data.status) {
-              console.log('successfully deleted')
-            } else {
-              console.log('failed to delete')
-            }
-          })
-          .catch(error => {
-            console.log('failed to delete', error)
-          })
-          .finally(response => {
-            console.log('finally')
-            this.getUsers()
-          })
+      if (!confirm('Are you sure you want to delete this user?')) {
+        return
       }
+      NxcUsersService.delete(user)
+        .then(response => {
+          if (response.data.status) {
+            console.log('successfully deleted')
+          } else {
+            console.log('failed to delete')
+          }
+        })
+        .catch(error => {
+          console.log('failed to delete', error)
+        })
+        .finally(response => {
+          console.log('finally')
+          this.getUsers()
+        })
     },
 
     createUser () {
-      console.log('create user!')
       if (!this.newUsername) {
         return null
       }
@@ -77,7 +78,7 @@ export default {
         username: this.newUsername,
         password: this.newPassword
       }
-      axios.post('http://localhost:5000/api/users/', JSON.stringify(data))
+      NxcUsersService.post(data)
         .then(response => {
           if (response.data.status) {
             console.log('successfully created!')
