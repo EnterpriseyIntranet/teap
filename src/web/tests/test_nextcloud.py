@@ -168,3 +168,90 @@ class TestNextCloudGroupsApi:
         nextcloud_mock.get_group.assert_called_once_with('asd')
         nextcloud_mock.remove_subadmin.assert_called_once_with('admin', 'asd')
         assert res.status_code == 201
+
+
+class TestGroupWithFolderApi:
+
+    def test_create_group_with_folder(self, client, nextcloud_mock):
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
+
+        data = {'group_name': 'test_group_name', 'group_type': 'other'}
+        res = client.post('/api/groups-with-folders/', json=data)
+
+        # asserts
+        assert res.status_code == 201
+        nextcloud_mock.get_group.assert_called_once_with(data['group_name'])
+        nextcloud_mock.add_group.assert_called_once_with(data['group_name'])
+        nextcloud_mock.create_group_folder.assert_called_once_with('/'.join([data['group_type'], data['group_name']]))
+
+    def test_create_existing_group(self, client, nextcloud_mock):
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=True))
+
+        data = {'group_name': 'test_group_name', 'group_type': 'other'}
+        res = client.post('/api/groups-with-folders/', json=data)
+
+        # asserts
+        assert res.status_code == 400
+        nextcloud_mock.get_group.assert_called_once_with(data['group_name'])
+        assert not nextcloud_mock.add_group.called
+        assert not nextcloud_mock.create_group_folder.called
+
+    def test_create_with_invalid_params(self, client, nextcloud_mock):
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=True))
+
+        # only one param
+        data = {'group_name': 'test_group_name'}
+        res = client.post('/api/groups-with-folders/', json=data)
+
+        # asserts
+        assert res.status_code == 400
+        assert not nextcloud_mock.get_group.called
+        assert not nextcloud_mock.add_group.called
+        assert not nextcloud_mock.create_group_folder.called
+
+        # only one param
+        data = {'group_type': 'other'}
+        res = client.post('/api/groups-with-folders/', json=data)
+
+        # asserts
+        assert res.status_code == 400
+        assert not nextcloud_mock.get_group.called
+        assert not nextcloud_mock.add_group.called
+        assert not nextcloud_mock.create_group_folder.called
+
+        # invalid group_type
+        data = {'group_type': 'invalid_type', 'group_name': 'test_group_name'}
+        res = client.post('/api/groups-with-folders/', json=data)
+
+        # asserts
+        assert res.status_code == 400
+        assert not nextcloud_mock.get_group.called
+        assert not nextcloud_mock.add_group.called
+        assert not nextcloud_mock.create_group_folder.called
+
+    def test_create_group_failed(self, client, nextcloud_mock):
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
+        nextcloud_mock.add_group = MagicMock(return_value=MagicMock(is_ok=False))
+
+        data = {'group_name': 'test_group_name', 'group_type': 'other'}
+        res = client.post('/api/groups-with-folders/', json=data)
+
+        # asserts
+        assert res.status_code == 400
+        nextcloud_mock.get_group.assert_called_once_with(data['group_name'])
+        nextcloud_mock.add_group.assert_called_once_with(data['group_name'])
+        assert not nextcloud_mock.create_group_folder.called
+
+    def test_create_folder_failed(self, client, nextcloud_mock):
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
+        nextcloud_mock.create_group_folder = MagicMock(return_value=MagicMock(is_ok=False))
+
+        data = {'group_name': 'test_group_name', 'group_type': 'other'}
+        res = client.post('/api/groups-with-folders/', json=data)
+
+        # asserts
+        assert res.status_code == 400
+        nextcloud_mock.get_group.assert_called_once_with(data['group_name'])
+        nextcloud_mock.add_group.assert_called_once_with(data['group_name'])
+        nextcloud_mock.create_group_folder.assert_called_once_with('/'.join([data['group_type'], data['group_name']]))
+        nextcloud_mock.delete_group.assert_called_once_with(data['group_name'])
