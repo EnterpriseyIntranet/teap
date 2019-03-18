@@ -11,9 +11,11 @@
     "build": "node build/build.js"
   },
   "dependencies": {
-    "axios": "^0.18.0",
-    "vue": "^2.5.2",
+      "axios": "^0.18.0",
+      "lodash": "^4.17.11",
+      "vue": "^2.5.2",
     "vue-axios": "^2.1.4",
+    "vue-multiselect": "^2.1.4",
     "vue-router": "^3.0.1"
   },
   "devDependencies": {

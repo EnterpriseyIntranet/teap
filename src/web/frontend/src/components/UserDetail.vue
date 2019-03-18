@@ -6,12 +6,14 @@
         <p>Address: {{ user.address || "None" }}</p>
 
         <p>Groups:</p>
-        <ul v-if="user.groups.length > 0">
-          <li v-for="group in user.groups" :key="group">
-            <p>{{ group }} <button v-on:click="removeFromGroup(group)">delete</button></p>
-          </li>
-        </ul>
-        <p v-else-if="user.groups.length <= 0">None</p>
+        <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>
+        <!--# TODO: delete me -->
+        <!--<ul v-if="user.groups.length > 0">-->
+          <!--<li v-for="group in user.groups" :key="group">-->
+            <!--<p>{{ group }} <button v-on:click="removeFromGroup(group)">delete</button></p>-->
+          <!--</li>-->
+        <!--</ul>-->
+        <!--<p v-else-if="user.groups.length <= 0">None</p>-->
 
         <p>Subadmin Groups:</p>
         <ul v-if="user.subadmin.length > 0">
@@ -21,20 +23,25 @@
         </ul>
         <p v-else-if="user.subadmin.length <= 0">None</p>
 
-        <p>Add to group: </p>
-        <input type="text" v-model="groupName"/>
-        <p v-if="groupNotFound" style="color: red;">Group not found</p>
-        <p><button v-on:click="addToGroup()">Add to group</button><button v-on:click="addToGroupSubadmins()">Add to subadmins</button></p>
+        <!-- TODO: delete me -->
+        <!--<p>Add to group: </p>-->
+        <!--<input type="text" v-model="groupName"/>-->
+        <!--<p v-if="groupNotFound" style="color: red;">Group not found</p>-->
+        <!--<p><button v-on:click="addToGroup()">Add to group</button><button v-on:click="addToGroupSubadmins()">Add to subadmins</button></p>-->
     </div>
   </div>
 </template>
 
 <script>
 import { NxcUsersService, NxcUserGroupsService, NxcGroupsService } from '@/common/nextcloud-api.service'
+import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
 
 export default {
   name: 'UserDetail',
   props: ['id'],
+  components: {
+    MultipleGroupSearch
+  },
   data () {
     return {
       user: null,
@@ -75,13 +82,11 @@ export default {
         })
     },
 
-    addToGroup () {
-      this.groupNotFound = false
-      NxcUserGroupsService.post(this.id, this.groupName)
+    addToGroup (group) {
+      NxcUserGroupsService.post(this.id, group)
         .then(response => {
           if (response.data.status) {
             console.log('successfully added')
-            this.groupName = ''
           } else {
             console.log('failed to add')
           }
