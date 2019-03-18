@@ -4,7 +4,7 @@ RUN true \
         && apt-get update -y \
 	&& curl -sL https://deb.nodesource.com/setup_11.x | bash - \
         && apt-get install -y \
-                python-pip python-dev build-essential \
+                python3-pip python3-dev build-essential gunicorn3 \
                 nodejs \
                 elinks \
         && apt-get clean all -y \
@@ -32,4 +32,5 @@ RUN true \
 
 EXPOSE 8080
 
-CMD ["flask", "run", "--host", "0.0.0.0", "--port", "8080"]
+# CMD ["flask", "run", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["gunicorn", "autoapp:app", "-b", ":8080"]
