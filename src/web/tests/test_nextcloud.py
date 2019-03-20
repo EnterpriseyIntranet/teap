@@ -38,6 +38,20 @@ class TestNextCloudUserApi:
         # asserts
         assert res.status_code == 201
         nextcloud_mock.add_user.assert_called_once_with(username, password)
+        assert not nextcloud_mock.add_to_group.called
+
+    def test_add_user_with_groups(self, client, nextcloud_mock):
+        username = 'admin'
+        password = 'admin'
+        groups = ['qwe', 'asd']
+        res = client.post('/api/users/', json={'username': username, 'password': password, 'groups': groups})
+        # asserts
+        assert res.status_code == 201
+        nextcloud_mock.add_user.assert_called_once_with(username, password)
+        assert nextcloud_mock.add_to_group.call_count == len(groups)
+        call_args_list = [each[0] for each in nextcloud_mock.add_to_group.call_args_list]
+        for group in groups:
+            assert (username, group) in call_args_list
 
     def test_delete_user(self, client, nextcloud_mock):
         client.delete('/api/users/admin')

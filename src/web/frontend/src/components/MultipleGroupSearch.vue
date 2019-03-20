@@ -52,19 +52,18 @@ export default {
   methods: {
 
     asyncSearch (query) {
+      this.$emit('search-change', query)
       this.isLoading = true
       NxcGroupsService.get()
         .then(response => {
-          // this.groups = []
           this.groups = response.data.data.groups
           this.isLoading = false
           if (!this.groups.length) {
-            this.notFound = true
+            this.$emit('not-found')
           }
         })
-        .catch(error => {
-          this.notFound = true
-          console.log(error)
+        .catch(() => {
+          this.$emit('not-found')
         })
     },
 

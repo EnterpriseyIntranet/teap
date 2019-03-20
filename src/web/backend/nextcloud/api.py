@@ -46,9 +46,12 @@ class UserViewSet(NextCloudMixin,
         """ Create user """
         username = request.json.get('username')
         password = request.json.get('password')
+        groups = request.json.get('groups', [])
         if not all([username, password]):
             return abort(400)
         res = self.nextcloud.add_user(username, password)
+        for group in groups:
+            self.nextcloud.add_to_group(username, group)
         return self.nxc_response(res), 201
 
     def delete(self, username):

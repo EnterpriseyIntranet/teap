@@ -49,4 +49,10 @@ export const NxcGroupsService = {
 
 }
 
+export const GroupWithFolderService = {
+  post (params) {
+    return ApiService.post('groups-with-folders', params)
+  }
+}
+
 export default { NxcUsersService, NxcGroupsService, NxcUserGroupsService }

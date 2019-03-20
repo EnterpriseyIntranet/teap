@@ -10,20 +10,7 @@
         </li>
       </ul>
     </div>
-
-    <!-- Create user -->
-    <div>
-      <p>Create user: </p>
-      <p>
-        <label>Username:</label>
-        <input type="text" v-model="newUsername">
-      </p>
-      <p>
-        <label>Password:</label>
-        <input type="password" v-model="newPassword">
-      </p>
-      <button @click.prevent="createUser()">Submit</button>
-    </div>
+    <router-link :to="{name: 'newUser'}"><a>New user</a></router-link>
   </div>
 </template>
 
@@ -33,9 +20,7 @@ import { NxcUsersService } from '../common/nextcloud-api.service.js'
 export default {
   data () {
     return {
-      users: null,
-      newUsername: null,
-      newPassword: null
+      users: null
     }
   },
   methods: {
@@ -68,30 +53,8 @@ export default {
           console.log('finally')
           this.getUsers()
         })
-    },
-
-    createUser () {
-      if (!this.newUsername) {
-        return null
-      }
-      let data = {
-        username: this.newUsername,
-        password: this.newPassword
-      }
-      NxcUsersService.post(data)
-        .then(response => {
-          if (response.data.status) {
-            console.log('successfully created!')
-            this.newUsername = this.newPassword = null
-            this.getUsers()
-          } else {
-            console.log('failed to create')
-          }
-        })
-        .catch(error => {
-          console.log('failed to create ', error)
-        })
     }
+
   },
   created () {
     this.getUsers()
