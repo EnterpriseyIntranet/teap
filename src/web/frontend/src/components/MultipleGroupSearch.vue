@@ -54,7 +54,7 @@ export default {
     asyncSearch (query) {
       this.$emit('search-change', query)
       this.isLoading = true
-      NxcGroupsService.get()
+      NxcGroupsService.get('', '', {'query': query})
         .then(response => {
           this.groups = response.data.data.groups
           this.isLoading = false
@@ -79,6 +79,7 @@ export default {
 
   created: function () {
     this.debounceAsyncSearch = _.debounce(this.asyncSearch, 500)
+    this.asyncSearch()
   }
 }
 </script>

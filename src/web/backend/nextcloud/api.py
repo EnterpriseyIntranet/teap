@@ -97,8 +97,9 @@ class GroupViewSet(NextCloudMixin,
 
     def get(self, group_name=None, action=None):
         """ List groups """
+        query = request.args.get('query')
         if group_name is None and action is None:
-            res = self.nextcloud.get_groups()
+            res = self.nextcloud.get_groups(search=query)
             return self.nxc_response(res)
         elif group_name and action is None:
             res = self.nextcloud.get_group(group_name)

@@ -26,9 +26,9 @@ export const NxcUserGroupsService = {
 }
 
 export const NxcGroupsService = {
-  get (slug, action = '') {
+  get (slug, action = '', params) {
     slug = action ? `${slug}/${action}` : slug
-    return ApiService.get('groups', slug)
+    return ApiService.get('groups', slug, params)
   },
 
   post (params) {

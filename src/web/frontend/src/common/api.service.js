@@ -10,8 +10,8 @@ const ApiService = {
     Vue.axios.defaults.headers.common['Content-Type'] = 'application/json'
   },
 
-  get (resource, slug = '') {
-    return Vue.axios.get(`${resource}/${slug}`).catch(error => {
+  get (resource, slug = '', params) {
+    return Vue.axios.get(`${resource}/${slug}`, {'params': params}).catch(error => {
       throw new Error(error)
     })
   },
