@@ -45,6 +45,10 @@ export const NxcGroupsService = {
 
   deleteSubadmin (user, group) {
     return ApiService.delete(`groups/${group}/subadmins`, user)
+  },
+
+  deleteEmpty (data) {
+    return ApiService.delete('groups', '', data)
   }
 
 }

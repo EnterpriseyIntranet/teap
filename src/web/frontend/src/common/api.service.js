@@ -29,8 +29,8 @@ const ApiService = {
     return Vue.axios.put(`${resource}`, params)
   },
 
-  delete (resource, slug = '') {
-    return Vue.axios.delete(`${resource}/${slug}`).catch(error => {
+  delete (resource, slug = '', data) {
+    return Vue.axios.delete(`${resource}/${slug}`, {'data': data}).catch(error => {
       throw new Error(error)
     })
   }

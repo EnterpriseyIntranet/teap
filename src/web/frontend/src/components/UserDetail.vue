@@ -7,13 +7,6 @@
 
         <p>Groups:</p>
         <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>
-        <!--# TODO: delete me -->
-        <!--<ul v-if="user.groups.length > 0">-->
-          <!--<li v-for="group in user.groups" :key="group">-->
-            <!--<p>{{ group }} <button v-on:click="removeFromGroup(group)">delete</button></p>-->
-          <!--</li>-->
-        <!--</ul>-->
-        <!--<p v-else-if="user.groups.length <= 0">None</p>-->
 
         <p>Subadmin Groups:</p>
         <ul v-if="user.subadmin.length > 0">
@@ -23,16 +16,20 @@
         </ul>
         <p v-else-if="user.subadmin.length <= 0">None</p>
 
-        <!-- TODO: delete me -->
-        <!--<p>Add to group: </p>-->
-        <!--<input type="text" v-model="groupName"/>-->
-        <!--<p v-if="groupNotFound" style="color: red;">Group not found</p>-->
-        <!--<p><button v-on:click="addToGroup()">Add to group</button><button v-on:click="addToGroupSubadmins()">Add to subadmins</button></p>-->
+        <p><button v-on:click.prevent="openDeleteModal()">Delete</button></p>
+
+        <modal name="remove">
+            <p>Delete user</p>
+            <p>Delete empty groups? <input v-model="deleteEmptyGroups" type="checkbox"/></p>
+            <button @click="deleteUser()">Delete</button>
+            <button @click="$modal.hide('remove')">Cancel</button>
+        </modal>
     </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios'
 import { NxcUsersService, NxcUserGroupsService, NxcGroupsService } from '@/common/nextcloud-api.service'
 import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
 
@@ -46,7 +43,8 @@ export default {
     return {
       user: null,
       groupName: '',
-      groupNotFound: false
+      groupNotFound: false,
+      deleteEmptyGroups: false
     }
   },
 
@@ -59,6 +57,9 @@ export default {
             this.user = response.data.data
           }
         )
+        .catch(() => {
+          this.$router.push({'name': 'notFound'})
+        })
     },
 
     removeFromGroup (group) {
@@ -144,6 +145,24 @@ export default {
         .finally(response => {
           console.log('finally')
           this.getUser()
+        })
+    },
+
+    openDeleteModal () {
+      this.$modal.show('remove')
+    },
+
+    deleteUser () {
+      let requests = [NxcUsersService.delete(this.user.id)]
+      if (this.deleteEmptyGroups) {
+        requests.push(NxcGroupsService.deleteEmpty({groups: this.user.groups}))
+      }
+      axios.all(requests)
+        .then(axios.spread((acct, perms) => {
+          this.$router.push({name: 'home'})
+        }))
+        .catch((error) => {
+          console.log(error)
         })
     }
 

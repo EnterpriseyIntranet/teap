@@ -114,7 +114,7 @@ class TestNextCloudGroupsApi:
         client.get('/api/groups/')
         # asserts
         assert nxc_response_mock.assert_called_once
-        nextcloud_mock.get_groups.assert_called_once_with()
+        nextcloud_mock.get_groups.assert_called_once_with(search=None)
 
     def test_get_group(self, client, nextcloud_mock, nxc_response_mock):
         res = client.get('/api/groups/groupname')
@@ -130,15 +130,22 @@ class TestNextCloudGroupsApi:
         assert res.status_code == 201
         nextcloud_mock.add_group.assert_called_once_with(group_name)
 
-    def test_delete_user(self, client, nextcloud_mock):
+    def test_delete_group(self, client, nextcloud_mock):
         res = client.delete('/api/groups/groupname')
         # asserts
         assert res.status_code == 202
         nextcloud_mock.delete_group.assert_called_once_with('groupname')
 
-        # delete without username
-        res = client.delete('/api/groups/')
-        assert res.status_code == 405
+    def test_mass_delete_groups(self, client, nextcloud_mock):
+        groups = ['qwe', 'asd']
+        res = client.delete('/api/groups/', json={'groups': groups, 'empty': True})
+        # asserts
+        assert res.status_code == 202
+        assert nextcloud_mock.delete_group.call_count == len(groups)
+        call_args_list = [each[0] for each in nextcloud_mock.delete_group.call_args_list]
+        for group in groups:
+            assert (group, ) in call_args_list
+
 
     def test_get_group_subadmins(self, client, nextcloud_mock):
         res = client.get('/api/groups/groupname/subadmins')
@@ -181,7 +188,7 @@ class TestNextCloudGroupsApi:
         # asserts
         nextcloud_mock.get_group.assert_called_once_with('asd')
         nextcloud_mock.remove_subadmin.assert_called_once_with('admin', 'asd')
-        assert res.status_code == 201
+        assert res.status_code == 202
 
 
 class TestGroupWithFolderApi:

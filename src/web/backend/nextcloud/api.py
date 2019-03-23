@@ -40,6 +40,8 @@ class UserViewSet(NextCloudMixin,
             return self.nxc_response(res)
         else:
             res = self.nextcloud.get_user(username)
+            if res.meta['statuscode'] == 404:
+                return jsonify({'message': 'User does not exist'}), 404
             return self.nxc_response(res)
 
     def post(self):
@@ -127,16 +129,34 @@ class GroupViewSet(NextCloudMixin,
             res = self.nextcloud.add_group(group_name)
             return self.nxc_response(res), 201
 
-    def delete(self, group_name, username=None):
+    def delete(self, group_name=None, username=None):
         """ Delete group """
-        if username:  # delete subadmin
-            if not self.nextcloud.get_group(group_name).is_ok:
-                return jsonify({"message": "group not found"}), 404
-            res = self.nextcloud.remove_subadmin(username, group_name)
-            return self.nxc_response(res), 201
-        else:
-            res = self.nextcloud.delete_group(group_name)
-            return self.nxc_response(res), 202
+        if group_name: # delete single group/subadmin
+            if username:  # delete subadmin
+                if not self.nextcloud.get_group(group_name).is_ok:
+                    return jsonify({"message": "group not found"}), 404
+                res = self.nextcloud.remove_subadmin(username, group_name)
+                return self.nxc_response(res), 202
+            else:
+                res = self.nextcloud.delete_group(group_name)
+                return self.nxc_response(res), 202
+        else:  # mass delete
+            groups = request.json.get('groups')
+            empty = request.json.get('empty') #  flag to delete only empty groups
+
+            for group_name in groups:
+                group = self.nextcloud.get_group(group_name)
+
+                if not group.is_ok:
+                    continue
+
+                if empty:
+                    if len(group.data['users']) == 0:
+                        self.nextcloud.delete_group(group_name)
+                else:
+                    self.nextcloud.delete_group(group_name)
+
+            return jsonify({"message": "ok"}), 202
 
 
 class GroupWithFolderViewSet(NextCloudMixin, MethodView):
@@ -177,7 +197,7 @@ blueprint.add_url_rule('/users/<username>/groups/', view_func=user_group_view, m
 blueprint.add_url_rule('/users/<username>/groups/<group_name>', view_func=user_group_view, methods=['DELETE'])
 
 group_view = GroupViewSet.as_view('groups_api')
-blueprint.add_url_rule('/groups/', view_func=group_view, methods=["GET", "POST"])
+blueprint.add_url_rule('/groups/', view_func=group_view, methods=["GET", "POST", "DELETE"])
 blueprint.add_url_rule('/groups/<group_name>', view_func=group_view, methods=["GET", "DELETE"])
 blueprint.add_url_rule('/groups/<group_name>/<action>', view_func=group_view, methods=["GET"])
 blueprint.add_url_rule('/groups/<group_name>/subadmins', view_func=group_view, methods=["POST", "DELETE"])
