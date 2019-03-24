@@ -52,16 +52,15 @@ export default {
       NxcGroupsService.delete(group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully deleted')
+            this.$notifier.success()
           } else {
-            console.log('failed to delete')
+            this.$notifier.error()
           }
         })
-        .catch(error => {
-          console.log('failed to delete', error)
+        .catch(() => {
+          this.$notifier.error()
         })
-        .finally(response => {
-          console.log('finally')
+        .finally(() => {
           this.getGroups()
         })
     },
@@ -76,15 +75,15 @@ export default {
       NxcGroupsService.post(data)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully created!')
+            this.$notifier.success()
             this.newGroupName = null
             this.getGroups()
           } else {
-            console.log('failed to create')
+            this.$notifier.error()
           }
         })
-        .catch(error => {
-          console.log('failed to create ', error)
+        .catch(() => {
+          this.$notifier.error()
         })
     }
   },

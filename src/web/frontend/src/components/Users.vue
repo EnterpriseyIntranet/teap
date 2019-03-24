@@ -30,9 +30,9 @@ export default {
           this.users = response.data.data.users
         }
         )
-        .catch(error =>
-          console.log(error)
-        )
+        .catch(() => {
+          this.$notifier.error()
+        })
     },
     deleteUser (user) {
       if (!confirm('Are you sure you want to delete this user?')) {
@@ -40,17 +40,17 @@ export default {
       }
       NxcUsersService.delete(user)
         .then(response => {
+          console.log(response.data)
           if (response.data.status) {
-            console.log('successfully deleted')
+            this.$notifier.success({text: 'User successfully deleted'})
           } else {
-            console.log('failed to delete')
+            this.$notifier.error({text: 'Failed to delete'})
           }
         })
-        .catch(error => {
-          console.log('failed to delete', error)
+        .catch(() => {
+          this.$notifier.error()
         })
         .finally(response => {
-          console.log('finally')
           this.getUsers()
         })
     }

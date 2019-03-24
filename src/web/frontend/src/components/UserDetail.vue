@@ -8,6 +8,7 @@
         <p>Groups:</p>
         <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>
 
+        <!-- TODO: replace with multiple select-->
         <p>Subadmin Groups:</p>
         <ul v-if="user.subadmin.length > 0">
           <li v-for="group in user.subadmin" :key="group">
@@ -57,8 +58,12 @@ export default {
             this.user = response.data.data
           }
         )
-        .catch(() => {
-          this.$router.push({'name': 'notFound'})
+        .catch((error) => {
+          if (error.response.status === 404) {
+            this.$router.push({'name': 'notFound'})
+          } else {
+            this.$notifier.error()
+          }
         })
     },
 
@@ -69,16 +74,15 @@ export default {
       NxcUserGroupsService.delete(this.id, group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully deleted')
+            this.$notifier.success({text: 'successfully deleted'})
           } else {
-            console.log('failed to delete')
+            this.$notifier.error({text: 'Failed to delete'})
           }
         })
-        .catch(error => {
-          console.log('failed to delete', error)
+        .catch(() => {
+          this.$notifier.error({text: 'Failed to delete'})
         })
         .finally(response => {
-          console.log('finally')
           this.getUser()
         })
     },
@@ -87,19 +91,17 @@ export default {
       NxcUserGroupsService.post(this.id, group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully added')
+            this.$notifier.success({text: 'successfully added'})
           } else {
-            console.log('failed to add')
+            this.$notifier.error({text: 'failed to add'})
           }
         })
         .catch(error => {
-          console.log('failed', error)
           if (error.response.status === 404) {
             this.groupNotFound = true
           }
         })
         .finally(response => {
-          console.log('finally')
           this.getUser()
         })
     },
@@ -116,13 +118,11 @@ export default {
           }
         })
         .catch(error => {
-          console.log('failed', error)
           if (error.response.status === 404) {
             this.groupNotFound = true
           }
         })
         .finally(response => {
-          console.log('finally')
           this.getUser()
         })
     },
@@ -134,16 +134,15 @@ export default {
       NxcGroupsService.deleteSubadmin(this.id, group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully deleted')
+            this.$notifier.success({text: 'Successfully deleted'})
           } else {
-            console.log('failed to delete')
+            this.$notifier.error({text: 'Failed to delete'})
           }
         })
-        .catch(error => {
-          console.log('failed to delete', error)
+        .catch(() => {
+          this.$notifier.error({text: 'Failed to delete'})
         })
         .finally(response => {
-          console.log('finally')
           this.getUser()
         })
     },
@@ -161,8 +160,8 @@ export default {
         .then(axios.spread((acct, perms) => {
           this.$router.push({name: 'home'})
         }))
-        .catch((error) => {
-          console.log(error)
+        .catch(() => {
+          this.$notifier.error()
         })
     }
 

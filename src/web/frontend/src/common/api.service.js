@@ -11,13 +11,10 @@ const ApiService = {
   },
 
   get (resource, slug = '', params) {
-    return Vue.axios.get(`${resource}/${slug}`, {'params': params}).catch(error => {
-      throw new Error(error)
-    })
+    return Vue.axios.get(`${resource}/${slug}`, {'params': params})
   },
 
   post (resource, params) {
-    console.log('params: ', params)
     return Vue.axios.post(`${resource}/`, params)
   },
 
@@ -30,9 +27,7 @@ const ApiService = {
   },
 
   delete (resource, slug = '', data) {
-    return Vue.axios.delete(`${resource}/${slug}`, {'data': data}).catch(error => {
-      throw new Error(error)
-    })
+    return Vue.axios.delete(`${resource}/${slug}`, {'data': data})
   }
 }
 

@@ -99,18 +99,24 @@ class GroupViewSet(NextCloudMixin,
 
     def get(self, group_name=None, action=None):
         """ List groups """
-        query = request.args.get('query')
-        if group_name is None and action is None:
+
+        if group_name is None and action is None:  # groups list
+            query = request.args.get('query')
             res = self.nextcloud.get_groups(search=query)
             return self.nxc_response(res)
-        elif group_name and action is None:
+
+        elif group_name and action is None:  # single group
             res = self.nextcloud.get_group(group_name)
+            if res.meta['statuscode'] == 404:
+                return jsonify({'message': 'Group does not exist'}), 404
             return self.nxc_response(res)
-        elif group_name and action == "subadmins":
+
+        elif group_name and action == "subadmins":  # group subadmins
             res = self.nextcloud.get_subadmins(group_name)
             return self.nxc_response(res)
+
         else:
-            return abort(400)
+            return jsonify({'message': 'Bad request'}), 400
 
     def post(self, group_name=None):
         """ Create group """

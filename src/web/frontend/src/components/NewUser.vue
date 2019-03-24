@@ -74,11 +74,11 @@ export default {
           if (response.data.status) {
             this.$router.push({name: 'user', params: {id: this.user.username}})
           } else {
-            console.log('failed to create')
+            this.$notifier.error()
           }
         })
-        .catch(error => {
-          console.log('failed to create ', error)
+        .catch(() => {
+          this.$notifier.error()
         })
     },
 
@@ -89,8 +89,8 @@ export default {
           this.groupExists = true
           this.user.groups.push(this.newGroup.name)
         })
-        .catch(error => {
-          console.log(error)
+        .catch(() => {
+          this.$notifier.error()
         })
     },
 
