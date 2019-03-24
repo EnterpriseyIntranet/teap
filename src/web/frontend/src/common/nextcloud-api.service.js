@@ -48,6 +48,7 @@ export const NxcGroupsService = {
   },
 
   deleteEmpty (data) {
+    data['empty'] = true
     return ApiService.delete('groups', '', data)
   }
 

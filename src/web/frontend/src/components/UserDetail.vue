@@ -8,14 +8,8 @@
         <p>Groups:</p>
         <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>
 
-        <!-- TODO: replace with multiple select-->
         <p>Subadmin Groups:</p>
-        <ul v-if="user.subadmin.length > 0">
-          <li v-for="group in user.subadmin" :key="group">
-            <p>{{ group }} <button v-on:click="removeFromGroupSubadmins(group)">delete</button></p>
-          </li>
-        </ul>
-        <p v-else-if="user.subadmin.length <= 0">None</p>
+        <multiple-group-search v-model="user.subadmin" @remove="removeFromGroupSubadmins" @select="addToGroupSubadmins"></multiple-group-search>
 
         <p><button v-on:click.prevent="openDeleteModal()">Delete</button></p>
 
@@ -43,8 +37,6 @@ export default {
   data () {
     return {
       user: null,
-      groupName: '',
-      groupNotFound: false,
       deleteEmptyGroups: false
     }
   },
@@ -96,31 +88,25 @@ export default {
             this.$notifier.error({text: 'failed to add'})
           }
         })
-        .catch(error => {
-          if (error.response.status === 404) {
-            this.groupNotFound = true
-          }
+        .catch(() => {
+          this.$notifier.error()
         })
         .finally(response => {
           this.getUser()
         })
     },
 
-    addToGroupSubadmins () {
-      this.groupNotFound = false
-      NxcGroupsService.createSubadmin(this.id, this.groupName)
+    addToGroupSubadmins (group) {
+      NxcGroupsService.createSubadmin(this.id, group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully added')
-            this.groupName = ''
+            this.$notifier.success()
           } else {
-            console.log('failed to add')
+            this.$notifier.error()
           }
         })
-        .catch(error => {
-          if (error.response.status === 404) {
-            this.groupNotFound = true
-          }
+        .catch(() => {
+          this.$notifier.error()
         })
         .finally(response => {
           this.getUser()

@@ -146,7 +146,6 @@ class TestNextCloudGroupsApi:
         for group in groups:
             assert (group, ) in call_args_list
 
-
     def test_get_group_subadmins(self, client, nextcloud_mock):
         res = client.get('/api/groups/groupname/subadmins')
 
@@ -194,7 +193,10 @@ class TestNextCloudGroupsApi:
 class TestGroupWithFolderApi:
 
     def test_create_group_with_folder(self, client, nextcloud_mock):
+        """ Test when main group type folder, as 'other' here already exists """
         nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
+        nextcloud_mock.get_group_folders = MagicMock(return_value=MagicMock(data={'1': {'mount_point': 'other'}}))
+        nextcloud_mock.create_group_folder = MagicMock(return_value=MagicMock(data={'id': '2'}))
 
         data = {'group_name': 'test_group_name', 'group_type': 'other'}
         res = client.post('/api/groups-with-folders/', json=data)
@@ -202,8 +204,35 @@ class TestGroupWithFolderApi:
         # asserts
         assert res.status_code == 201
         nextcloud_mock.get_group.assert_called_once_with(data['group_name'])
-        nextcloud_mock.add_group.assert_called_once_with(data['group_name'])
         nextcloud_mock.create_group_folder.assert_called_once_with('/'.join([data['group_type'], data['group_name']]))
+
+        grant_access_calls_list = [each[0] for each in nextcloud_mock.grant_access_to_group_folder.call_args_list]
+        for values in [('1', data['group_name']), ('2', data['group_name'])]:
+            assert values in grant_access_calls_list
+
+    def test_create_group_with_folder_2(self, client, nextcloud_mock):
+        """ Test when main group type folder, as 'other' here doesn't exist """
+        nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
+        nextcloud_mock.get_group_folders = MagicMock(return_value=MagicMock(data={}))
+        nextcloud_mock.create_group_folder = MagicMock(return_value=MagicMock(data={'id': '2'}))
+
+        data = {'group_name': 'test_group_name', 'group_type': 'other'}
+        res = client.post('/api/groups-with-folders/', json=data)
+
+        full_group_folder_path = '/'.join([data['group_type'], data['group_name']])
+        # asserts
+        assert res.status_code == 201
+        nextcloud_mock.get_group.assert_called_once_with(data['group_name'])
+
+        create_group_calls_list = [each[0] for each in nextcloud_mock.create_group_folder.call_args_list]
+        assert len(create_group_calls_list) == 2
+        for values in [(full_group_folder_path,), (data['group_type'],)]:
+            assert values in create_group_calls_list
+
+        grant_access_calls_list = [each[0] for each in nextcloud_mock.grant_access_to_group_folder.call_args_list]
+        assert len(grant_access_calls_list) == 2
+        for values in [('2', data['group_name']), ('2', data['group_name'])]:
+            assert values in grant_access_calls_list
 
     def test_create_existing_group(self, client, nextcloud_mock):
         nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=True))
@@ -266,6 +295,7 @@ class TestGroupWithFolderApi:
     def test_create_folder_failed(self, client, nextcloud_mock):
         nextcloud_mock.get_group = MagicMock(return_value=MagicMock(is_ok=False))
         nextcloud_mock.create_group_folder = MagicMock(return_value=MagicMock(is_ok=False))
+        nextcloud_mock.get_group_folders = MagicMock(return_value=MagicMock(data={'1': {'mount_point': 'other'}}))
 
         data = {'group_name': 'test_group_name', 'group_type': 'other'}
         res = client.post('/api/groups-with-folders/', json=data)

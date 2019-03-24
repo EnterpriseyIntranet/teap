@@ -184,8 +184,22 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         if not create_group_res.is_ok:
             return jsonify({"message": "Something went wrong during group creation"}), 400
 
+        # check if folder for type is already created
+        group_folders = self.nextcloud.get_group_folders().data
+        folder_id = None
+        for key, value in group_folders.items():
+            if value['mount_point'] == group_type:
+                folder_id = key
+                break
+        if folder_id is not None:
+            self.nextcloud.grant_access_to_group_folder(folder_id, group_name)
+        else:
+            create_type_folder_res = self.nextcloud.create_group_folder(group_type)
+            self.nextcloud.grant_access_to_group_folder(create_type_folder_res.data['id'], group_name)
+
         create_folder_res = self.nextcloud.create_group_folder("/".join([group_type, group_name]))  # create folder
-        if not create_folder_res.is_ok:
+        grant_folder_perms_res = self.nextcloud.grant_access_to_group_folder(create_folder_res.data['id'], group_name)
+        if not create_folder_res.is_ok or not grant_folder_perms_res.is_ok:
             self.nextcloud.delete_group(group_name)
             return jsonify({"message": "Something went wrong during group folder creation"}), 400
 
