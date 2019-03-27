@@ -10,20 +10,7 @@
         </li>
       </ul>
     </div>
-
-    <!-- Create user -->
-    <div>
-      <p>Create user: </p>
-      <p>
-        <label>Username:</label>
-        <input type="text" v-model="newUsername">
-      </p>
-      <p>
-        <label>Password:</label>
-        <input type="password" v-model="newPassword">
-      </p>
-      <button @click.prevent="createUser()">Submit</button>
-    </div>
+    <router-link :to="{name: 'newUser'}"><a>New user</a></router-link>
   </div>
 </template>
 
@@ -33,9 +20,7 @@ import { NxcUsersService } from '../common/nextcloud-api.service.js'
 export default {
   data () {
     return {
-      users: null,
-      newUsername: null,
-      newPassword: null
+      users: null
     }
   },
   methods: {
@@ -45,9 +30,9 @@ export default {
           this.users = response.data.data.users
         }
         )
-        .catch(error =>
-          console.log(error)
-        )
+        .catch(() => {
+          this.$notifier.error()
+        })
     },
     deleteUser (user) {
       if (!confirm('Are you sure you want to delete this user?')) {
@@ -55,43 +40,21 @@ export default {
       }
       NxcUsersService.delete(user)
         .then(response => {
+          console.log(response.data)
           if (response.data.status) {
-            console.log('successfully deleted')
+            this.$notifier.success({text: 'User successfully deleted'})
           } else {
-            console.log('failed to delete')
+            this.$notifier.error({text: 'Failed to delete'})
           }
         })
-        .catch(error => {
-          console.log('failed to delete', error)
+        .catch(() => {
+          this.$notifier.error()
         })
         .finally(response => {
-          console.log('finally')
           this.getUsers()
         })
-    },
-
-    createUser () {
-      if (!this.newUsername) {
-        return null
-      }
-      let data = {
-        username: this.newUsername,
-        password: this.newPassword
-      }
-      NxcUsersService.post(data)
-        .then(response => {
-          if (response.data.status) {
-            console.log('successfully created!')
-            this.newUsername = this.newPassword = null
-            this.getUsers()
-          } else {
-            console.log('failed to create')
-          }
-        })
-        .catch(error => {
-          console.log('failed to create ', error)
-        })
     }
+
   },
   created () {
     this.getUsers()

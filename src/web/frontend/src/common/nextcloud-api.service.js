@@ -26,9 +26,9 @@ export const NxcUserGroupsService = {
 }
 
 export const NxcGroupsService = {
-  get (slug, action = '') {
+  get (slug, action = '', params) {
     slug = action ? `${slug}/${action}` : slug
-    return ApiService.get('groups', slug)
+    return ApiService.get('groups', slug, params)
   },
 
   post (params) {
@@ -45,8 +45,19 @@ export const NxcGroupsService = {
 
   deleteSubadmin (user, group) {
     return ApiService.delete(`groups/${group}/subadmins`, user)
+  },
+
+  deleteEmpty (data) {
+    data['empty'] = true
+    return ApiService.delete('groups', '', data)
   }
 
+}
+
+export const GroupWithFolderService = {
+  post (params) {
+    return ApiService.post('groups-with-folders', params)
+  }
 }
 
 export default { NxcUsersService, NxcGroupsService, NxcUserGroupsService }

@@ -6,40 +6,38 @@
         <p>Address: {{ user.address || "None" }}</p>
 
         <p>Groups:</p>
-        <ul v-if="user.groups.length > 0">
-          <li v-for="group in user.groups" :key="group">
-            <p>{{ group }} <button v-on:click="removeFromGroup(group)">delete</button></p>
-          </li>
-        </ul>
-        <p v-else-if="user.groups.length <= 0">None</p>
+        <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>
 
         <p>Subadmin Groups:</p>
-        <ul v-if="user.subadmin.length > 0">
-          <li v-for="group in user.subadmin" :key="group">
-            <p>{{ group }} <button v-on:click="removeFromGroupSubadmins(group)">delete</button></p>
-          </li>
-        </ul>
-        <p v-else-if="user.subadmin.length <= 0">None</p>
+        <multiple-group-search v-model="user.subadmin" @remove="removeFromGroupSubadmins" @select="addToGroupSubadmins"></multiple-group-search>
 
-        <p>Add to group: </p>
-        <input type="text" v-model="groupName"/>
-        <p v-if="groupNotFound" style="color: red;">Group not found</p>
-        <p><button v-on:click="addToGroup()">Add to group</button><button v-on:click="addToGroupSubadmins()">Add to subadmins</button></p>
+        <p><button v-on:click.prevent="openDeleteModal()">Delete</button></p>
+
+        <modal name="remove">
+            <p>Delete user</p>
+            <p>Delete empty groups? <input v-model="deleteEmptyGroups" type="checkbox"/></p>
+            <button @click="deleteUser()">Delete</button>
+            <button @click="$modal.hide('remove')">Cancel</button>
+        </modal>
     </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios'
 import { NxcUsersService, NxcUserGroupsService, NxcGroupsService } from '@/common/nextcloud-api.service'
+import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
 
 export default {
   name: 'UserDetail',
   props: ['id'],
+  components: {
+    MultipleGroupSearch
+  },
   data () {
     return {
       user: null,
-      groupName: '',
-      groupNotFound: false
+      deleteEmptyGroups: false
     }
   },
 
@@ -52,6 +50,13 @@ export default {
             this.user = response.data.data
           }
         )
+        .catch((error) => {
+          if (error.response.status === 404) {
+            this.$router.push({'name': 'notFound'})
+          } else {
+            this.$notifier.error()
+          }
+        })
     },
 
     removeFromGroup (group) {
@@ -61,62 +66,49 @@ export default {
       NxcUserGroupsService.delete(this.id, group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully deleted')
+            this.$notifier.success({text: 'successfully deleted'})
           } else {
-            console.log('failed to delete')
+            this.$notifier.error({text: 'Failed to delete'})
           }
         })
-        .catch(error => {
-          console.log('failed to delete', error)
+        .catch(() => {
+          this.$notifier.error({text: 'Failed to delete'})
         })
         .finally(response => {
-          console.log('finally')
           this.getUser()
         })
     },
 
-    addToGroup () {
-      this.groupNotFound = false
-      NxcUserGroupsService.post(this.id, this.groupName)
+    addToGroup (group) {
+      NxcUserGroupsService.post(this.id, group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully added')
-            this.groupName = ''
+            this.$notifier.success({text: 'successfully added'})
           } else {
-            console.log('failed to add')
+            this.$notifier.error({text: 'failed to add'})
           }
         })
-        .catch(error => {
-          console.log('failed', error)
-          if (error.response.status === 404) {
-            this.groupNotFound = true
-          }
+        .catch(() => {
+          this.$notifier.error()
         })
         .finally(response => {
-          console.log('finally')
           this.getUser()
         })
     },
 
-    addToGroupSubadmins () {
-      this.groupNotFound = false
-      NxcGroupsService.createSubadmin(this.id, this.groupName)
+    addToGroupSubadmins (group) {
+      NxcGroupsService.createSubadmin(this.id, group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully added')
-            this.groupName = ''
+            this.$notifier.success()
           } else {
-            console.log('failed to add')
+            this.$notifier.error()
           }
         })
-        .catch(error => {
-          console.log('failed', error)
-          if (error.response.status === 404) {
-            this.groupNotFound = true
-          }
+        .catch(() => {
+          this.$notifier.error()
         })
         .finally(response => {
-          console.log('finally')
           this.getUser()
         })
     },
@@ -128,17 +120,34 @@ export default {
       NxcGroupsService.deleteSubadmin(this.id, group)
         .then(response => {
           if (response.data.status) {
-            console.log('successfully deleted')
+            this.$notifier.success({text: 'Successfully deleted'})
           } else {
-            console.log('failed to delete')
+            this.$notifier.error({text: 'Failed to delete'})
           }
         })
-        .catch(error => {
-          console.log('failed to delete', error)
+        .catch(() => {
+          this.$notifier.error({text: 'Failed to delete'})
         })
         .finally(response => {
-          console.log('finally')
           this.getUser()
+        })
+    },
+
+    openDeleteModal () {
+      this.$modal.show('remove')
+    },
+
+    deleteUser () {
+      let requests = [NxcUsersService.delete(this.user.id)]
+      if (this.deleteEmptyGroups) {
+        requests.push(NxcGroupsService.deleteEmpty({groups: this.user.groups}))
+      }
+      axios.all(requests)
+        .then(axios.spread((acct, perms) => {
+          this.$router.push({name: 'home'})
+        }))
+        .catch(() => {
+          this.$notifier.error()
         })
     }
 

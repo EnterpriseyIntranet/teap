@@ -10,14 +10,11 @@ const ApiService = {
     Vue.axios.defaults.headers.common['Content-Type'] = 'application/json'
   },
 
-  get (resource, slug = '') {
-    return Vue.axios.get(`${resource}/${slug}`).catch(error => {
-      throw new Error(error)
-    })
+  get (resource, slug = '', params) {
+    return Vue.axios.get(`${resource}/${slug}`, {'params': params})
   },
 
   post (resource, params) {
-    console.log('params: ', params)
     return Vue.axios.post(`${resource}/`, params)
   },
 
@@ -29,10 +26,8 @@ const ApiService = {
     return Vue.axios.put(`${resource}`, params)
   },
 
-  delete (resource, slug = '') {
-    return Vue.axios.delete(`${resource}/${slug}`).catch(error => {
-      throw new Error(error)
-    })
+  delete (resource, slug = '', data) {
+    return Vue.axios.delete(`${resource}/${slug}`, {'data': data})
   }
 }
 

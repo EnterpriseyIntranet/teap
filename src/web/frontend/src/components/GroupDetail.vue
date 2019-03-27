@@ -41,21 +41,23 @@ export default {
         .then(response => {
           this.group = response.data.data
           this.getGroupSubadmins()
-          console.log('success', response)
         })
         .catch(error => {
-          console.log('failed to load group', error)
+          if (error.response.status === 404) {
+            this.$router.push({'name': 'notFound'})
+          } else {
+            this.$notifier.error()
+          }
         })
     },
 
     getGroupSubadmins () {
       NxcGroupsService.get(this.id, 'subadmins')
         .then(response => {
-          console.log('subadmins success, response: ', response)
           this.$set(this.group, 'subadmins', response.data.data)
         })
-        .catch(error => {
-          console.log('subadmins error, error: ', error)
+        .catch(() => {
+          this.$notifier.error()
         })
     },
 
@@ -64,12 +66,12 @@ export default {
         return
       }
       NxcUserGroupsService.delete(user, this.id)
-        .then(response => {
-          console.log('success', response)
+        .then(() => {
+          this.$notifier.success()
           this.getGroup()
         })
-        .catch(error => {
-          console.log('error', error)
+        .catch(() => {
+          this.$notifier.error()
         })
     },
 
@@ -78,12 +80,12 @@ export default {
         return
       }
       NxcGroupsService.deleteSubadmin(user, this.id)
-        .then(response => {
-          console.log('success', response)
+        .then(() => {
+          this.$notifier.success()
           this.getGroup()
         })
-        .catch(error => {
-          console.log('error', error)
+        .catch(() => {
+          this.$notifier.error()
         })
     }
   },
