@@ -177,6 +177,14 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         if group_type.lower() not in ALLOWED_GROUP_TYPES:  # check if group type in list of allowed types
             return jsonify({"message": "Not allowed group type"}), 400
 
+        # check division group name
+        if group_type.lower() == 'divisions' and not group_name.lower().startswith("division"):
+            return jsonify({"message": 'Division group name must start with "Division"'}), 400
+
+        # check countries group name
+        if group_type.lower() == 'countries' and not group_name.lower().startswith("country"):
+            return jsonify({"message": 'Country group name must start with "Country"'}), 400
+
         if self.nextcloud.get_group(group_name).is_ok:  # check if group with such name doesn't exist
             return jsonify({"message": "Group with this name already exists"}), 400
 

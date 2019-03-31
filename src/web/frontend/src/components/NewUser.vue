@@ -18,6 +18,7 @@
         <div v-if="!groupExists && newGroup.name">
           <p>Group doesn't exist, but you can create it: </p>
           <p>New group: {{ newGroup.name }}</p>
+          <p v-if="groupNameError" style="color: red">{{ groupNameError }}</p>
 
           <select v-model="newGroup.type">
             <option value="divisions">Divisions</option>
@@ -55,7 +56,8 @@ export default {
       newGroup: {
         name: null,
         type: 'other'
-      }
+      },
+      groupNameError: false
     }
   },
   methods: {
@@ -83,7 +85,13 @@ export default {
     },
 
     createGroup () {
+      this.groupNameError = false
       let data = {group_name: this.newGroup.name, group_type: this.newGroup.type}
+
+      if (!this.validateGroupData(data)) {
+        return
+      }
+
       GroupWithFolderService.post(data)
         .then(response => {
           this.groupExists = true
@@ -94,8 +102,20 @@ export default {
         })
     },
 
+    validateGroupData (data) {
+      if (data.group_type === 'divisions' && !data.group_name.startsWith('Division')) {
+        this.groupNameError = 'Division group name must start with "Division"'
+        return false
+      } else if (data.group_type === 'countries' && !data.group_name.startsWith('Country')) {
+        this.groupNameError = 'Country group name must start with "Country"'
+        return false
+      }
+      return true
+    },
+
     groupSearchChange (query) {
       this.newGroup.name = query
+      this.groupNameError = false
       this.groupExists = true
     },
 
