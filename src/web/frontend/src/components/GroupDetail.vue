@@ -39,14 +39,18 @@ export default {
     getGroup () {
       NxcGroupsService.get(this.id)
         .then(response => {
-          this.group = response.data.data
-          this.getGroupSubadmins()
+          if (response.data.status) {
+            this.group = response.data.data
+            this.getGroupSubadmins()
+          } else {
+            this.$notifier.error({text: response.data.message})
+          }
         })
         .catch(error => {
           if (error.response.status === 404) {
             this.$router.push({'name': 'notFound'})
           } else {
-            this.$notifier.error()
+            this.$notifier.error({text: error.data.message})
           }
         })
     },
@@ -54,10 +58,14 @@ export default {
     getGroupSubadmins () {
       NxcGroupsService.get(this.id, 'subadmins')
         .then(response => {
-          this.$set(this.group, 'subadmins', response.data.data)
+          if (response.data.status) {
+            this.$set(this.group, 'subadmins', response.data.data)
+          } else {
+            this.$notifier.error({text: response.data.message})
+          }
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
     },
 
@@ -70,8 +78,8 @@ export default {
           this.$notifier.success()
           this.getGroup()
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
     },
 
@@ -84,8 +92,8 @@ export default {
           this.$notifier.success()
           this.getGroup()
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
     }
   },

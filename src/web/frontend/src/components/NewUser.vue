@@ -74,11 +74,11 @@ export default {
           if (response.data.status) {
             this.$router.push({name: 'user', params: {id: this.user.username}})
           } else {
-            this.$notifier.error()
+            this.$notifier.error({text: response.data.message})
           }
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
     },
 
@@ -89,8 +89,8 @@ export default {
           this.groupExists = true
           this.user.groups.push(this.newGroup.name)
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
     },
 

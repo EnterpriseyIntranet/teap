@@ -38,7 +38,11 @@ export default {
     getGroups () {
       NxcGroupsService.get()
         .then(response => {
-          this.groups = response.data.data.groups
+          if (response.data.status) {
+            this.groups = response.data.data.groups
+          } else {
+            this.$notifier.error({text: response.data.message})
+          }
         }
         )
         .catch(error =>
@@ -54,11 +58,11 @@ export default {
           if (response.data.status) {
             this.$notifier.success()
           } else {
-            this.$notifier.error()
+            this.$notifier.error({text: response.data.message})
           }
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
         .finally(() => {
           this.getGroups()
@@ -79,11 +83,11 @@ export default {
             this.newGroupName = null
             this.getGroups()
           } else {
-            this.$notifier.error()
+            this.$notifier.error({text: response.data.message})
           }
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
     }
   },

@@ -56,10 +56,14 @@ export default {
       this.isLoading = true
       NxcGroupsService.get('', '', {'query': query})
         .then(response => {
-          this.groups = response.data.data.groups
-          this.isLoading = false
-          if (!this.groups.length) {
-            this.$emit('not-found')
+          if (response.data.status) {
+            this.groups = response.data.data.groups
+            this.isLoading = false
+            if (!this.groups.length) {
+              this.$emit('not-found')
+            }
+          } else {
+            this.$notifier.error({text: response.data.message})
           }
         })
         .catch(() => {

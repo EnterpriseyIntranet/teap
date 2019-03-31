@@ -18,7 +18,7 @@ class NextCloudMixin:
         username = current_app.config['NEXTCLOUD_USER']
         password = current_app.config['NEXTCLOUD_PASSWORD']
         if url is None or username is None or password is None:
-            return abort(400)
+            return jsonify({'message': 'url, username, password fields are required'}), 400
         nxc = NextCloud(endpoint=url, user=username, password=password)
         return nxc
 
@@ -50,7 +50,7 @@ class UserViewSet(NextCloudMixin,
         password = request.json.get('password')
         groups = request.json.get('groups', [])
         if not all([username, password]):
-            return abort(400)
+            return jsonify({'message': 'username, password fields are required'}), 400
         res = self.nextcloud.add_user(username, password)
         for group in groups:
             self.nextcloud.add_to_group(username, group)
@@ -82,7 +82,7 @@ class UserGroupViewSet(NextCloudMixin,
         """ Add user to group """
         group_name = request.json.get('group_name')
         if not group_name:
-            return abort(400)
+            return jsonify({'message': 'group_name is required parameter'}), 400
         if not self.nextcloud.get_group(group_name).is_ok:
             return jsonify({"message": "group not found"}), 404
         res = self.nextcloud.add_to_group(username, group_name)
@@ -123,7 +123,7 @@ class GroupViewSet(NextCloudMixin,
         if group_name:  # create subadmin
             username = request.json.get('username')
             if not username:
-                return abort(400)
+                return jsonify({'message': 'username is required'}), 400
             if not self.nextcloud.get_group(group_name).is_ok:
                 return jsonify({"message": "group not found"}), 404
             res = self.nextcloud.create_subadmin(username, group_name)
@@ -131,7 +131,7 @@ class GroupViewSet(NextCloudMixin,
         else:  # create group
             group_name = request.json.get('group_name')
             if not group_name:
-                return abort(400)
+                return jsonify({'message': 'group_name is required'}), 400
             res = self.nextcloud.add_group(group_name)
             return self.nxc_response(res), 201
 
@@ -172,7 +172,7 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         group_type = request.json.get('group_type')
 
         if not group_name or not group_type:  # check if all params present
-            return abort(400)
+            return jsonify({'message': 'group_name, group_type are required parameters'}), 400
 
         if group_type.lower() not in ALLOWED_GROUP_TYPES:  # check if group type in list of allowed types
             return jsonify({"message": "Not allowed group type"}), 400
