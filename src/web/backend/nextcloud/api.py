@@ -187,10 +187,11 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         # check if folder for type is already created
         group_folders = self.nextcloud.get_group_folders().data
         folder_id = None
-        for key, value in group_folders.items():
-            if value['mount_point'] == group_type:
-                folder_id = key
-                break
+        if group_folders:  # if there is no group folders, response data will be empty list
+            for key, value in group_folders.items():
+                if value['mount_point'] == group_type:
+                    folder_id = key
+                    break
         if folder_id is not None:
             self.nextcloud.grant_access_to_group_folder(folder_id, group_name)
         else:
