@@ -2,7 +2,7 @@
 from flask import Flask, render_template
 
 from backend import commands, public, user, core, nextcloud
-from backend.extensions import bcrypt, cache, csrf_protect, db, login_manager, migrate
+from backend.extensions import bcrypt, cache, db, login_manager, migrate
 
 
 def create_app(config_object='backend.settings'):
@@ -26,7 +26,6 @@ def register_extensions(app):
     bcrypt.init_app(app)
     cache.init_app(app)
     db.init_app(app)
-    # csrf_protect.init_app(app) tmp disable until set up in vue
     login_manager.init_app(app)
     migrate.init_app(app, db)
     return None

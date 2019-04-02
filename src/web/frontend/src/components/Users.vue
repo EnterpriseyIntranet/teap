@@ -27,11 +27,15 @@ export default {
     getUsers () {
       NxcUsersService.get()
         .then(response => {
-          this.users = response.data.data.users
+          if (response.data.status) {
+            this.users = response.data.data.users
+          } else {
+            this.$notifier.error({text: response.data.message})
+          }
         }
         )
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
     },
     deleteUser (user) {
@@ -44,11 +48,11 @@ export default {
           if (response.data.status) {
             this.$notifier.success({text: 'User successfully deleted'})
           } else {
-            this.$notifier.error({text: 'Failed to delete'})
+            this.$notifier.error({title: 'Failed to delete', text: response.data.message})
           }
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
         .finally(response => {
           this.getUsers()

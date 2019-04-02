@@ -54,7 +54,7 @@ export default {
           if (error.response.status === 404) {
             this.$router.push({'name': 'notFound'})
           } else {
-            this.$notifier.error()
+            this.$notifier.error({text: error.data.message})
           }
         })
     },
@@ -68,11 +68,11 @@ export default {
           if (response.data.status) {
             this.$notifier.success({text: 'successfully deleted'})
           } else {
-            this.$notifier.error({text: 'Failed to delete'})
+            this.$notifier.error({title: 'Failed to delete', text: response.data.message})
           }
         })
-        .catch(() => {
-          this.$notifier.error({text: 'Failed to delete'})
+        .catch((error) => {
+          this.$notifier.error({title: 'Failed to delete', text: error.data.message})
         })
         .finally(response => {
           this.getUser()
@@ -85,11 +85,11 @@ export default {
           if (response.data.status) {
             this.$notifier.success({text: 'successfully added'})
           } else {
-            this.$notifier.error({text: 'failed to add'})
+            this.$notifier.error({title: 'Failed to add', text: response.data.message})
           }
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({title: 'Failed to add', text: error.data.message})
         })
         .finally(response => {
           this.getUser()
@@ -102,11 +102,11 @@ export default {
           if (response.data.status) {
             this.$notifier.success()
           } else {
-            this.$notifier.error()
+            this.$notifier.error({text: response.data.message})
           }
         })
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
         .finally(response => {
           this.getUser()
@@ -122,11 +122,11 @@ export default {
           if (response.data.status) {
             this.$notifier.success({text: 'Successfully deleted'})
           } else {
-            this.$notifier.error({text: 'Failed to delete'})
+            this.$notifier.error({title: 'Failed to delete', text: response.data.message})
           }
         })
-        .catch(() => {
-          this.$notifier.error({text: 'Failed to delete'})
+        .catch((error) => {
+          this.$notifier.error({title: 'Failed to delete', text: error.data.message})
         })
         .finally(response => {
           this.getUser()
@@ -146,8 +146,8 @@ export default {
         .then(axios.spread((acct, perms) => {
           this.$router.push({name: 'home'})
         }))
-        .catch(() => {
-          this.$notifier.error()
+        .catch((error) => {
+          this.$notifier.error({text: error.data.message})
         })
     }
 
