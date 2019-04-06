@@ -35,3 +35,6 @@ environs
 
 # Nextcloud
 -e git://github.com/EnterpriseyIntranet/nextcloud-API#egg=nextcloud
+
+# Rocket chat
+rocketchat_API

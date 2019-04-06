@@ -1,7 +1,7 @@
 """The app module, containing the app factory function."""
 from flask import Flask, render_template
 
-from backend import commands, public, user, core, nextcloud
+from backend import commands, public, user, core, nextcloud, rocket_chat
 from backend.extensions import bcrypt, cache, db, login_manager, migrate
 
 
@@ -36,6 +36,7 @@ def register_blueprints(app):
     app.register_blueprint(nextcloud.api.blueprint)
     app.register_blueprint(public.views.blueprint)
     app.register_blueprint(core.views.blueprint)
+    app.register_blueprint(rocket_chat.api.blueprint)
     return None
 
 
