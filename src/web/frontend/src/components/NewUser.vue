@@ -4,6 +4,14 @@
     <div>
       <p>New user: </p>
       <p>
+        <label>Name:</label>
+        <input type="text" v-model="user.name">
+      </p>
+      <p>
+        <label>Surname:</label>
+        <input type="text" v-model="user.surname">
+      </p>
+      <p>
         <label>Username:</label>
         <input type="text" v-model="user.username">
       </p>
@@ -48,6 +56,8 @@ export default {
   data () {
     return {
       user: {
+        name: null,
+        surname: null,
         username: null,
         password: null,
         groups: []
@@ -66,21 +76,19 @@ export default {
       if (!this.user.username) {
         return null
       }
-      let data = {
-        username: this.user.username,
-        password: this.user.password,
-        groups: this.user.groups
+      let groups = []
+      for (let group of this.user.groups) {
+        groups.push(group.fqdn)
       }
+      let data = {...this.user}
+      data.groups = groups
       NxcUsersService.post(data)
         .then(response => {
-          if (response.data.status) {
-            this.$router.push({name: 'user', params: {id: this.user.username}})
-          } else {
-            this.$notifier.error({text: response.data.message})
-          }
+          console.log('success')
+          this.$router.push({name: 'user', params: {id: this.user.username}})
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
     },
 
@@ -98,7 +106,7 @@ export default {
           this.user.groups.push(this.newGroup.name)
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
     },
 

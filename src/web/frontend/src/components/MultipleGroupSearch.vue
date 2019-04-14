@@ -5,6 +5,7 @@
         :value="value"
         @input="updateValue"
         id="ajax"
+        track-by="fqdn"
         place-holder="Type to search"
         :options="groups"
         :multiple="true"
@@ -22,9 +23,10 @@
         @select="selectOption"
         :preserveSearch="true"
       >
+        <template slot="option" slot-scope="{ option }">{{ option.data['cn'][0] }}</template>
         <template slot="tag" slot-scope="{ option }">
           <span class="custom__tag">
-            <span>{{ option }}</span>
+            <span>{{ option.data['cn'][0] }}</span>
             <span class="custom__remove" @click="$emit('remove', option)">❌</span>
           </span>
         </template>
@@ -56,14 +58,10 @@ export default {
       this.isLoading = true
       NxcGroupsService.get('', '', {'query': query})
         .then(response => {
-          if (response.data.status) {
-            this.groups = response.data.data.groups
-            this.isLoading = false
-            if (!this.groups.length) {
-              this.$emit('not-found')
-            }
-          } else {
-            this.$notifier.error({text: response.data.message})
+          this.groups = response.data
+          this.isLoading = false
+          if (!this.groups.length) {
+            this.$emit('not-found')
           }
         })
         .catch(() => {

@@ -1,24 +1,23 @@
 <template>
     <div>
       <div v-if="group">
-        <h2>Group: {{ id }}</h2>
+        <h2>Group: {{ group.data.cn[0] }}</h2>
 
         <p>Users:</p>
-        <ul v-if="group.users.length > 0">
-          <li v-for="user in group.users" :key="user">
+        <ul v-if="group.data.memberUid.length > 0">
+          <li v-for="user in group.data.memberUid" :key="user">
             <p>{{ user }} <button v-on:click="deleteGroupUser(user)">delete</button></p>
         </li>
         </ul>
         <p v-else-if="group.users.length <= 0">None</p>
 
-        <p>Subadmins:</p>
-        <ul v-if="group.subadmins && group.subadmins.length > 0">
-          <li v-for="subadmin in group.subadmins" :key="subadmin">
-            <p>{{ subadmin }} <button v-on:click="deleteSubadmin(subadmin)">delete</button></p>
-        </li>
-        </ul>
-        <p v-else-if="group.subadmins && group.subadmins.length <= 0">None</p>
-
+<!--        <p>Subadmins:</p>-->
+<!--        <ul v-if="group.subadmins && group.subadmins.length > 0">-->
+<!--          <li v-for="subadmin in group.subadmins" :key="subadmin">-->
+<!--            <p>{{ subadmin }} <button v-on:click="deleteSubadmin(subadmin)">delete</button></p>-->
+<!--        </li>-->
+<!--        </ul>-->
+<!--        <p v-else-if="group.subadmins && group.subadmins.length <= 0">None</p>-->
       </div>
     </div>
 </template>
@@ -39,18 +38,13 @@ export default {
     getGroup () {
       NxcGroupsService.get(this.id)
         .then(response => {
-          if (response.data.status) {
-            this.group = response.data.data
-            this.getGroupSubadmins()
-          } else {
-            this.$notifier.error({text: response.data.message})
-          }
+          this.group = response.data
         })
         .catch(error => {
           if (error.response.status === 404) {
             this.$router.push({'name': 'notFound'})
           } else {
-            this.$notifier.error({text: error.data.message})
+            this.$notifier.error({text: error.response.data.message})
           }
         })
     },
@@ -65,7 +59,7 @@ export default {
           }
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
     },
 
@@ -79,7 +73,7 @@ export default {
           this.getGroup()
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
     },
 
@@ -93,7 +87,7 @@ export default {
           this.getGroup()
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
     }
   },
