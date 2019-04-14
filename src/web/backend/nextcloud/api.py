@@ -2,10 +2,10 @@ from flask import Blueprint, jsonify, request, abort, current_app
 from flask.views import MethodView
 
 from nextcloud import NextCloud
-from edap import Edap, ConstraintError
+from edap import ConstraintError
 
 from backend.utils import EncoderWithBytes
-from backend.settings import EDAP_USER, EDAP_DOMAIN, EDAP_HOSTNAME, EDAP_PASSWORD
+from backend.ldap.api import EdapMixin
 from .utils import edap_to_dict
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
@@ -36,9 +36,7 @@ class NextCloudMixin:
         nxc = NextCloud(endpoint=url, user=username, password=password)
         return nxc
 
-    @property
-    def edap(self):
-        return Edap(EDAP_HOSTNAME, EDAP_USER, EDAP_PASSWORD, EDAP_DOMAIN)
+
 
     def nxc_response(self, nextcloud_response):
         return jsonify({
@@ -49,6 +47,7 @@ class NextCloudMixin:
 
 
 class UserViewSet(NextCloudMixin,
+                  EdapMixin,
                   MethodView):
 
     def get(self, username=None):
@@ -111,6 +110,7 @@ class UserViewSet(NextCloudMixin,
 
 
 class UserGroupViewSet(NextCloudMixin,
+                       EdapMixin,
                        MethodView):
 
     def post(self, username):
@@ -137,6 +137,7 @@ class UserGroupViewSet(NextCloudMixin,
 
 
 class GroupViewSet(NextCloudMixin,
+                   EdapMixin,
                    MethodView):
 
     def get(self, group_name=None, action=None):
@@ -262,6 +263,13 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
             return jsonify({"message": "Something went wrong during group folder creation"}), 400
 
         return jsonify({"message": "Group with group folder successfully created"}), 201
+
+
+class GroupFolderViewSet(EdapMixin, NextCloudMixin, MethodView):
+
+    def post(self, group):
+        """ Create group folder for given group """
+        pass
 
 
 user_view = UserViewSet.as_view('users_api')
