@@ -15,13 +15,13 @@ export const NxcUsersService = {
 }
 
 export const NxcUserGroupsService = {
-  post (username, groupName, action = '') {
+  post (username, fqdn, action = '') {
     let resource = action ? `users/${username}/groups/subadmins` : `users/${username}/groups`
-    return ApiService.post(resource, {'group_name': groupName})
+    return ApiService.post(resource, {'fqdn': fqdn})
   },
 
-  delete (username, groupName) {
-    return ApiService.delete(`users/${username}/groups`, groupName)
+  delete (username, fqdn) {
+    return ApiService.delete(`users/${username}/groups`, '', {fqdn: fqdn})
   }
 }
 

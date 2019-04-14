@@ -5,8 +5,8 @@
     <div>
       <p>List:</p>
       <ul>
-        <li v-for="user in users" :key="user">
-          <router-link :to="{name: 'user', params: {id: user}}">{{ user }}</router-link> <button v-on:click="deleteUser(user)">delete</button>
+        <li v-for="user in users" :key="user.fqdn">
+          <router-link :to="{name: 'user', params: {id: user[1]['uid'][0]}}">{{ user[1]['uid'][0] }}</router-link> <button v-on:click="deleteUser(user)">delete</button>
         </li>
       </ul>
     </div>
@@ -27,15 +27,11 @@ export default {
     getUsers () {
       NxcUsersService.get()
         .then(response => {
-          if (response.data.status) {
-            this.users = response.data.data.users
-          } else {
-            this.$notifier.error({text: response.data.message})
-          }
+          this.users = response.data
         }
         )
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
     },
     deleteUser (user) {
@@ -52,7 +48,7 @@ export default {
           }
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
         .finally(response => {
           this.getUsers()
