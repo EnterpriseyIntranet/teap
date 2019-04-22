@@ -1,15 +1,13 @@
 <template>
   <div>
     <div v-if="user">
-      <h2>User: {{ user.id }}</h2>
-        <p>Enabled: {{ user.enabled }}</p>
-        <p>Address: {{ user.address || "None" }}</p>
+      <h2>User: {{ user.data['uid'][0] }}</h2>
 
         <p>Groups:</p>
         <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>
 
-        <p>Subadmin Groups:</p>
-        <multiple-group-search v-model="user.subadmin" @remove="removeFromGroupSubadmins" @select="addToGroupSubadmins"></multiple-group-search>
+<!--        <p>Subadmin Groups:</p>-->
+<!--        <multiple-group-search v-model="user.subadmin" @remove="removeFromGroupSubadmins" @select="addToGroupSubadmins"></multiple-group-search>-->
 
         <p><button v-on:click.prevent="openDeleteModal()">Delete</button></p>
 
@@ -47,14 +45,14 @@ export default {
       NxcUsersService.get(this.id)
         .then(
           response => {
-            this.user = response.data.data
+            this.user = response.data
           }
         )
         .catch((error) => {
           if (error.response.status === 404) {
             this.$router.push({'name': 'notFound'})
           } else {
-            this.$notifier.error({text: error.data.message})
+            this.$notifier.error({text: error.response.data.message})
           }
         })
     },
@@ -63,16 +61,12 @@ export default {
       if (!confirm('Are you sure you want to delete user from this group?')) {
         return
       }
-      NxcUserGroupsService.delete(this.id, group)
+      NxcUserGroupsService.delete(this.id, group.fqdn)
         .then(response => {
-          if (response.data.status) {
-            this.$notifier.success({text: 'successfully deleted'})
-          } else {
-            this.$notifier.error({title: 'Failed to delete', text: response.data.message})
-          }
+          this.$notifier.success({text: 'successfully deleted'})
         })
         .catch((error) => {
-          this.$notifier.error({title: 'Failed to delete', text: error.data.message})
+          this.$notifier.error({title: 'Failed to delete', text: error.response.data.message})
         })
         .finally(response => {
           this.getUser()
@@ -80,16 +74,12 @@ export default {
     },
 
     addToGroup (group) {
-      NxcUserGroupsService.post(this.id, group)
+      NxcUserGroupsService.post(this.id, group.fqdn)
         .then(response => {
-          if (response.data.status) {
-            this.$notifier.success({text: 'successfully added'})
-          } else {
-            this.$notifier.error({title: 'Failed to add', text: response.data.message})
-          }
+          this.$notifier.success({text: 'successfully added'})
         })
         .catch((error) => {
-          this.$notifier.error({title: 'Failed to add', text: error.data.message})
+          this.$notifier.error({title: 'Failed to add', text: error.response.data.message})
         })
         .finally(response => {
           this.getUser()
@@ -106,7 +96,7 @@ export default {
           }
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
         .finally(response => {
           this.getUser()
@@ -119,14 +109,10 @@ export default {
       }
       NxcGroupsService.deleteSubadmin(this.id, group)
         .then(response => {
-          if (response.data.status) {
-            this.$notifier.success({text: 'Successfully deleted'})
-          } else {
-            this.$notifier.error({title: 'Failed to delete', text: response.data.message})
-          }
+          this.$notifier.success({text: 'Successfully deleted'})
         })
         .catch((error) => {
-          this.$notifier.error({title: 'Failed to delete', text: error.data.message})
+          this.$notifier.error({title: 'Failed to delete', text: error.response.data.message})
         })
         .finally(response => {
           this.getUser()
@@ -147,7 +133,7 @@ export default {
           this.$router.push({name: 'home'})
         }))
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
     }
 

@@ -5,8 +5,8 @@
     <div>
       <p>List:</p>
       <ul>
-        <li v-for="group in groups" :key="group">
-          <router-link :to="{name: 'group', params: {id: group}}">{{ group }}</router-link> <button v-on:click="deleteGroup(group)">delete</button>
+        <li v-for="group in groups" :key="group.fqdn">
+          <router-link :to="{name: 'group', params: {id: group.data.cn[0]}}">{{ group.data.cn[0] }}</router-link> <button v-on:click="deleteGroup(group)">delete</button>
         </li>
       </ul>
     </div>
@@ -38,13 +38,8 @@ export default {
     getGroups () {
       NxcGroupsService.get()
         .then(response => {
-          if (response.data.status) {
-            this.groups = response.data.data.groups
-          } else {
-            this.$notifier.error({text: response.data.message})
-          }
-        }
-        )
+          this.groups = response.data
+        })
         .catch(error =>
           console.log(error)
         )
@@ -55,14 +50,10 @@ export default {
       }
       NxcGroupsService.delete(group)
         .then(response => {
-          if (response.data.status) {
-            this.$notifier.success()
-          } else {
-            this.$notifier.error({text: response.data.message})
-          }
+          this.$notifier.success()
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
         .finally(() => {
           this.getGroups()
@@ -71,7 +62,7 @@ export default {
 
     createGroup () {
       if (!this.newGroupName) {
-        return null
+        return
       }
       let data = {
         group_name: this.newGroupName
@@ -87,7 +78,7 @@ export default {
           }
         })
         .catch((error) => {
-          this.$notifier.error({text: error.data.message})
+          this.$notifier.error({text: error.response.data.message})
         })
     }
   },

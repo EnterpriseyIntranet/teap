@@ -2,10 +2,24 @@ from flask import Blueprint, jsonify, request, abort, current_app
 from flask.views import MethodView
 
 from nextcloud import NextCloud
+from edap import Edap, ConstraintError
+
+from backend.utils import EncoderWithBytes
+from backend.settings import EDAP_USER, EDAP_DOMAIN, EDAP_HOSTNAME, EDAP_PASSWORD
+from .utils import edap_to_dict
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
+blueprint.json_encoder = EncoderWithBytes
 
 ALLOWED_GROUP_TYPES = ['divisions', 'countries', 'other']
+
+
+# try:
+#     edap = Edap(EDAP_HOSTNAME, EDAP_USER, EDAP_PASSWORD, EDAP_DOMAIN)
+#     edap_exc = None
+# except Exception as e:
+#     edap = None
+#     edap_exc = e
 
 
 class NextCloudMixin:
@@ -22,6 +36,10 @@ class NextCloudMixin:
         nxc = NextCloud(endpoint=url, user=username, password=password)
         return nxc
 
+    @property
+    def edap(self):
+        return Edap(EDAP_HOSTNAME, EDAP_USER, EDAP_PASSWORD, EDAP_DOMAIN)
+
     def nxc_response(self, nextcloud_response):
         return jsonify({
             'status': nextcloud_response.is_ok,
@@ -30,38 +48,59 @@ class NextCloudMixin:
             })
 
 
-class UserViewSet(NextCloudMixin,
-                  MethodView):
+class UserListViewSet(NextCloudMixin, MethodView):
 
-    def get(self, username=None):
+    def get(self):
         """ List users """
-        if username is None:
-            res = self.nextcloud.get_users()
-            return self.nxc_response(res)
-        else:
-            res = self.nextcloud.get_user(username)
-            if res.meta['statuscode'] == 404:
-                return jsonify({'message': 'User does not exist'}), 404
-            return self.nxc_response(res)
+        res = self.edap.get_users()
+        return jsonify(res)
 
     def post(self):
         """ Create user """
         username = request.json.get('username')
         password = request.json.get('password')
+        name = request.json.get('name')
+        surname = request.json.get('surname')
         groups = request.json.get('groups', [])
-        if not all([username, password]):
-            return jsonify({'message': 'username, password fields are required'}), 400
-        res = self.nextcloud.add_user(username, password)
+        if not all([username, password, name, surname]):
+            return jsonify({'message': 'username, password, name, surname fields are required'}), 400
+
+        try:
+            self.edap.add_user(username, name, surname, password)
+        except ConstraintError as e:
+            return jsonify({'message': "Failed to create user. {}".format(e)})
+
         for group in groups:
-            self.nextcloud.add_to_group(username, group)
-        return self.nxc_response(res), 201
+            self.edap.make_uid_member_of(username, group)
+
+        return jsonify({'status': True})
+
+
+class UserRetrieveViewSet(NextCloudMixin,
+                          MethodView):
+    """ ViewSet for single user """
+    def get(self, username):
+        """ List users """
+        res = self.edap.get_user(username)
+        user_groups = self.edap.get_user_groups(username)
+        if not res:
+            return jsonify({'message': 'User does not exist'}), 404
+        elif len(res) > 1:
+            return jsonify({'message': 'More than 1 user found'}), 409
+        res = {
+            **edap_to_dict(res[0]),
+            "groups": [edap_to_dict(group) for group in user_groups]
+        }
+        return jsonify(res)
 
     def delete(self, username):
         """ Delete user """
+        # TODO: switch to edap
         res = self.nextcloud.delete_user(username)
         return self.nxc_response(res)
 
     def patch(self, username, action=None):
+        # TODO: switch to edap
         if action is not None:
             if action not in ['enable', 'disable']:
                 return jsonify({}), 404
@@ -80,18 +119,25 @@ class UserGroupViewSet(NextCloudMixin,
 
     def post(self, username):
         """ Add user to group """
-        group_name = request.json.get('group_name')
-        if not group_name:
-            return jsonify({'message': 'group_name is required parameter'}), 400
-        if not self.nextcloud.get_group(group_name).is_ok:
-            return jsonify({"message": "group not found"}), 404
-        res = self.nextcloud.add_to_group(username, group_name)
-        return self.nxc_response(res)
+        group_fqdn = request.json.get('fqdn')
+        if not group_fqdn:
+            return jsonify({'message': 'fqdn is required parameter'}), 400
+        try:
+            self.edap.make_uid_member_of(username, group_fqdn)
+        except ConstraintError as e:
+            return jsonify({'message': str(e)}), 404
+        return jsonify({'message': 'Success'}), 200
 
-    def delete(self, username, group_name):
+    def delete(self, username):
         """ Remove user from group """
-        res = self.nextcloud.remove_from_group(username, group_name)
-        return self.nxc_response(res)
+        group_fqdn = request.json.get('fqdn')
+        if not group_fqdn:
+            return jsonify({'message': 'fqdn is a required parameter'})
+        try:
+            res = self.edap.remove_uid_member_of(username, group_fqdn)
+        except ConstraintError as e:
+            return jsonify({'message': f'Failed to delete. {e}'}), 400
+        return jsonify({'message': 'Success'}), 202
 
 
 class GroupViewSet(NextCloudMixin,
@@ -102,15 +148,22 @@ class GroupViewSet(NextCloudMixin,
 
         if group_name is None and action is None:  # groups list
             query = request.args.get('query')
-            res = self.nextcloud.get_groups(search=query)
-            return self.nxc_response(res)
+            search = f'cn={query}*' if query else None
+            res = self.edap.get_groups(search=search)
+            return jsonify([edap_to_dict(obj) for obj in res]), 200
 
         elif group_name and action is None:  # single group
-            res = self.nextcloud.get_group(group_name)
-            if res.meta['statuscode'] == 404:
-                return jsonify({'message': 'Group does not exist'}), 404
-            return self.nxc_response(res)
+            try:
+                res = self.edap.get_group(group_name)
+            except ConstraintError as e:
+                return jsonify({'message': f'Group not found. {e}'}), 404
+            if len(res) == 0:
+                return jsonify({'message': f'Group not found.'}), 404
+            elif len(res) > 1:
+                return jsonify({'message': f'More than 1 gorup found'}), 409
+            return jsonify(edap_to_dict(res[0]))
 
+        # TODO: switch to edap
         elif group_name and action == "subadmins":  # group subadmins
             res = self.nextcloud.get_subadmins(group_name)
             return self.nxc_response(res)
@@ -215,15 +268,16 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         return jsonify({"message": "Group with group folder successfully created"}), 201
 
 
-user_view = UserViewSet.as_view('users_api')
-blueprint.add_url_rule('/users/', view_func=user_view, methods=['GET', 'POST'])
+user_list_view = UserListViewSet.as_view('users_api')
+blueprint.add_url_rule('/users/', view_func=user_list_view, methods=['GET', 'POST'])
+
+user_view = UserRetrieveViewSet.as_view('user_api')
 blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['GET', 'DELETE'])
 blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['PATCH'])
 blueprint.add_url_rule('/users/<username>/<action>', view_func=user_view, methods=['PATCH'])
 
 user_group_view = UserGroupViewSet.as_view('user_groups_api')
-blueprint.add_url_rule('/users/<username>/groups/', view_func=user_group_view, methods=['POST'])
-blueprint.add_url_rule('/users/<username>/groups/<group_name>', view_func=user_group_view, methods=['DELETE'])
+blueprint.add_url_rule('/users/<username>/groups/', view_func=user_group_view, methods=['POST', 'DELETE'])
 
 group_view = GroupViewSet.as_view('groups_api')
 blueprint.add_url_rule('/groups/', view_func=group_view, methods=["GET", "POST", "DELETE"])
