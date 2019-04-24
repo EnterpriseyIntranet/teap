@@ -36,5 +36,8 @@ environs
 # Nextcloud
 -e git://github.com/EnterpriseyIntranet/nextcloud-API#egg=nextcloud
 
+# EDAP
+-e git://github.com/EnterpriseyIntranet/edap#egg=edap
+
 # Rocket chat
 rocketchat_API

@@ -4,6 +4,7 @@
 #
 #    pip-compile prod.in --output-file prod.txt
 #
+-e git+git://github.com/EnterpriseyIntranet/edap#egg=edap
 -e git+git://github.com/EnterpriseyIntranet/nextcloud-API#egg=nextcloud
 alembic==1.0.7            # via flask-migrate
 bcrypt==3.1.6             # via flask-bcrypt
@@ -27,10 +28,13 @@ mako==1.0.7               # via alembic
 markupsafe==1.0
 marshmallow==2.18.1       # via environs
 psycopg2==2.7.5
+pyasn1-modules==0.2.5     # via python-ldap
+pyasn1==0.4.5             # via pyasn1-modules, python-ldap
 pycparser==2.19           # via cffi
 python-dateutil==2.8.0    # via alembic
 python-dotenv==0.10.1     # via environs
 python-editor==1.0.4      # via alembic
+python-ldap==3.2.0
 requests==2.21.0          # via rocketchat-api
 rocketchat-api==0.6.28
 six==1.12.0               # via bcrypt, python-dateutil
