@@ -7,6 +7,7 @@ RUN true \
                 python3-pip python3-dev build-essential gunicorn3 \
                 nodejs \
                 elinks \
+                libldap2-dev libsasl2-dev \
         && apt-get clean all -y \
         && true
 
