@@ -2,23 +2,16 @@ from flask import Blueprint, jsonify, request, abort, current_app
 from flask.views import MethodView
 
 from nextcloud import NextCloud
-from edap import Edap, ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
+from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 
 from backend.utils import EncoderWithBytes
-from backend.settings import EDAP_USER, EDAP_DOMAIN, EDAP_HOSTNAME, EDAP_PASSWORD
+from backend.ldap.api import EdapMixin
+from .utils import edap_to_dict, create_group_folder
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
 blueprint.json_encoder = EncoderWithBytes
 
 ALLOWED_GROUP_TYPES = ['divisions', 'countries', 'other']
-
-
-# try:
-#     edap = Edap(EDAP_HOSTNAME, EDAP_USER, EDAP_PASSWORD, EDAP_DOMAIN)
-#     edap_exc = None
-# except Exception as e:
-#     edap = None
-#     edap_exc = e
 
 
 class NextCloudMixin:
@@ -35,10 +28,6 @@ class NextCloudMixin:
         nxc = NextCloud(endpoint=url, user=username, password=password)
         return nxc
 
-    @property
-    def edap(self):
-        return Edap(EDAP_HOSTNAME, EDAP_USER, EDAP_PASSWORD, EDAP_DOMAIN)
-
     def nxc_response(self, nextcloud_response):
         return jsonify({
             'status': nextcloud_response.is_ok,
@@ -47,7 +36,7 @@ class NextCloudMixin:
             })
 
 
-class UserListViewSet(NextCloudMixin, MethodView):
+class UserListViewSet(NextCloudMixin, EdapMixin, MethodView):
 
     def get(self):
         """ List users """
@@ -76,6 +65,7 @@ class UserListViewSet(NextCloudMixin, MethodView):
 
 
 class UserRetrieveViewSet(NextCloudMixin,
+                          EdapMixin,
                           MethodView):
     """ ViewSet for single user """
     def get(self, username):
@@ -112,6 +102,7 @@ class UserRetrieveViewSet(NextCloudMixin,
 
 
 class UserGroupViewSet(NextCloudMixin,
+                       EdapMixin,
                        MethodView):
 
     def post(self, username):
@@ -138,6 +129,7 @@ class UserGroupViewSet(NextCloudMixin,
 
 
 class GroupListViewSet(NextCloudMixin,
+                       EdapMixin,
                        MethodView):
 
     def get(self):
@@ -247,27 +239,30 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         if not create_group_res.is_ok:
             return jsonify({"message": "Something went wrong during group creation"}), 400
 
-        # check if folder for type is already created
-        group_folders = self.nextcloud.get_group_folders().data
-        folder_id = None
-        if group_folders:  # if there is no group folders, response data will be empty list
-            for key, value in group_folders.items():
-                if value['mount_point'] == group_type:
-                    folder_id = key
-                    break
-        if folder_id is not None:
-            self.nextcloud.grant_access_to_group_folder(folder_id, group_name)
-        else:
-            create_type_folder_res = self.nextcloud.create_group_folder(group_type)
-            self.nextcloud.grant_access_to_group_folder(create_type_folder_res.data['id'], group_name)
+        create_groupfolder_res = create_group_folder(self.nextcloud, group_name, group_type)
 
-        create_folder_res = self.nextcloud.create_group_folder("/".join([group_type, group_name]))  # create folder
-        grant_folder_perms_res = self.nextcloud.grant_access_to_group_folder(create_folder_res.data['id'], group_name)
-        if not create_folder_res.is_ok or not grant_folder_perms_res.is_ok:
-            self.nextcloud.delete_group(group_name)
+        if not create_groupfolder_res:
             return jsonify({"message": "Something went wrong during group folder creation"}), 400
 
         return jsonify({"message": "Group with group folder successfully created"}), 201
+
+
+class GroupFolderViewSet(EdapMixin, NextCloudMixin, MethodView):
+
+    def post(self):
+        """ Create group folder for given group """
+        group_name = request.json.get('group_name')
+        group_type = request.json.get('group_type')
+
+        if not group_name or not group_type:  # check if all params present
+            return jsonify({'message': 'group_name, group_type are required parameters'}), 400
+
+        create_groupfolder_res = create_group_folder(self.nextcloud, group_name, group_type)
+
+        if not create_groupfolder_res:
+            return jsonify({"message": "Something went wrong during group folder creation"}), 400
+
+        return jsonify({"message": "Group folder successfully created"}), 201
 
 
 user_list_view = UserListViewSet.as_view('users_api')
@@ -293,3 +288,6 @@ blueprint.add_url_rule('/groups/<group_name>/subadmins/<username>', view_func=gr
 
 group_with_folder_view = GroupWithFolderViewSet.as_view('groups_with_folder_api')
 blueprint.add_url_rule('/groups-with-folders', view_func=group_with_folder_view, methods=["POST"])
+
+group_folder_view = GroupFolderViewSet.as_view('groupfolder_api')
+blueprint.add_url_rule('/groupfolder', view_func=group_folder_view, methods=["POST"])
