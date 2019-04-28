@@ -2,11 +2,10 @@ from flask import Blueprint, jsonify, request, abort, current_app
 from flask.views import MethodView
 
 from nextcloud import NextCloud
-from edap import Edap, ConstraintError
+from edap import Edap, ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 
 from backend.utils import EncoderWithBytes
 from backend.settings import EDAP_USER, EDAP_DOMAIN, EDAP_HOSTNAME, EDAP_PASSWORD
-from .utils import edap_to_dict
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
 blueprint.json_encoder = EncoderWithBytes
@@ -81,16 +80,14 @@ class UserRetrieveViewSet(NextCloudMixin,
     """ ViewSet for single user """
     def get(self, username):
         """ List users """
-        res = self.edap.get_user(username)
-        user_groups = self.edap.get_user_groups(username)
-        if not res:
-            return jsonify({'message': 'User does not exist'}), 404
-        elif len(res) > 1:
+        try:
+            res = self.edap.get_user(username)
+        except MultipleObjectsFound:
             return jsonify({'message': 'More than 1 user found'}), 409
-        res = {
-            **edap_to_dict(res[0]),
-            "groups": [edap_to_dict(group) for group in user_groups]
-        }
+        except ObjectDoesNotExist:
+            return jsonify({'message': 'User does not exist'}), 404
+        user_groups = self.edap.get_user_groups(username)
+        res['groups'] = [group for group in user_groups]
         return jsonify(res)
 
     def delete(self, username):
@@ -140,82 +137,87 @@ class UserGroupViewSet(NextCloudMixin,
         return jsonify({'message': 'Success'}), 202
 
 
-class GroupViewSet(NextCloudMixin,
-                   MethodView):
+class GroupListViewSet(NextCloudMixin,
+                       MethodView):
 
-    def get(self, group_name=None, action=None):
+    def get(self):
         """ List groups """
-
-        if group_name is None and action is None:  # groups list
-            query = request.args.get('query')
-            search = f'cn={query}*' if query else None
-            res = self.edap.get_groups(search=search)
-            return jsonify([edap_to_dict(obj) for obj in res]), 200
-
-        elif group_name and action is None:  # single group
-            try:
-                res = self.edap.get_group(group_name)
-            except ConstraintError as e:
-                return jsonify({'message': f'Group not found. {e}'}), 404
-            if len(res) == 0:
-                return jsonify({'message': f'Group not found.'}), 404
-            elif len(res) > 1:
-                return jsonify({'message': f'More than 1 gorup found'}), 409
-            return jsonify(edap_to_dict(res[0]))
-
-        # TODO: switch to edap
-        elif group_name and action == "subadmins":  # group subadmins
-            res = self.nextcloud.get_subadmins(group_name)
-            return self.nxc_response(res)
-
-        else:
-            return jsonify({'message': 'Bad request'}), 400
+        query = request.args.get('query')
+        search = f'cn={query}*' if query else None
+        res = self.edap.get_groups(search=search)
+        return jsonify([obj for obj in res]), 200
 
     def post(self, group_name=None):
         """ Create group """
-        if group_name:  # create subadmin
-            username = request.json.get('username')
-            if not username:
-                return jsonify({'message': 'username is required'}), 400
-            if not self.nextcloud.get_group(group_name).is_ok:
-                return jsonify({"message": "group not found"}), 404
-            res = self.nextcloud.create_subadmin(username, group_name)
-            return self.nxc_response(res), 201
-        else:  # create group
-            group_name = request.json.get('group_name')
-            if not group_name:
-                return jsonify({'message': 'group_name is required'}), 400
-            res = self.nextcloud.add_group(group_name)
-            return self.nxc_response(res), 201
+        group_name = request.json.get('group_name')
+        if not group_name:
+            return jsonify({'message': 'group_name is required'}), 400
+        res = self.nextcloud.add_group(group_name)
+        return self.nxc_response(res), 201
 
-    def delete(self, group_name=None, username=None):
+    def delete(self):
         """ Delete group """
-        if group_name: # delete single group/subadmin
-            if username:  # delete subadmin
-                if not self.nextcloud.get_group(group_name).is_ok:
-                    return jsonify({"message": "group not found"}), 404
-                res = self.nextcloud.remove_subadmin(username, group_name)
-                return self.nxc_response(res), 202
-            else:
-                res = self.nextcloud.delete_group(group_name)
-                return self.nxc_response(res), 202
-        else:  # mass delete
-            groups = request.json.get('groups')
-            empty = request.json.get('empty') #  flag to delete only empty groups
+        groups = request.json.get('groups')
+        empty = request.json.get('empty') #  flag to delete only empty groups
 
-            for group_name in groups:
-                group = self.nextcloud.get_group(group_name)
+        for group_name in groups:
+            group = self.nextcloud.get_group(group_name)
 
-                if not group.is_ok:
-                    continue
+            if not group.is_ok:
+                continue
 
-                if empty:
-                    if len(group.data['users']) == 0:
-                        self.nextcloud.delete_group(group_name)
-                else:
+            if empty:
+                if len(group.data['users']) == 0:
                     self.nextcloud.delete_group(group_name)
+            else:
+                self.nextcloud.delete_group(group_name)
 
-            return jsonify({"message": "ok"}), 202
+        return jsonify({"message": "ok"}), 202
+
+
+class GroupViewSet(NextCloudMixin, MethodView):
+
+    def get(self, group_name):
+        """ List groups """
+        try:
+            res = self.edap.get_groups(search=f'cn={group_name}')
+        except ConstraintError as e:
+            return jsonify({'message': f'Group not found. {e}'}), 404
+        if len(res) == 0:
+            return jsonify({'message': f'Group not found.'}), 404
+        elif len(res) > 1:
+            return jsonify({'message': f'More than 1 gorup found'}), 409
+        return jsonify(res[0])
+
+    def delete(self, group_name, username=None):
+        """ Delete group """
+        res = self.nextcloud.delete_group(group_name)
+        return self.nxc_response(res), 202
+
+
+class GroupSubadminViewSet(NextCloudMixin, MethodView):
+    # TODO: rewrite to EDAP ?
+    def get(self, group_name):
+        """ List group subadamins """
+        res = self.nextcloud.get_subadmins(group_name)
+        return self.nxc_response(res)
+
+    def post(self, group_name):
+        """ Create subadmin for group"""
+        username = request.json.get('username')
+        if not username:
+            return jsonify({'message': 'username is required'}), 400
+        if not self.nextcloud.get_group(group_name).is_ok:
+            return jsonify({"message": "group not found"}), 404
+        res = self.nextcloud.create_subadmin(username, group_name)
+        return self.nxc_response(res), 201
+
+    def delete(self, group_name, username):
+        """ Delete subadmin """
+        if not self.nextcloud.get_group(group_name).is_ok:
+            return jsonify({"message": "group not found"}), 404
+        res = self.nextcloud.remove_subadmin(username, group_name)
+        return self.nxc_response(res), 202
 
 
 class GroupWithFolderViewSet(NextCloudMixin, MethodView):
@@ -279,10 +281,13 @@ blueprint.add_url_rule('/users/<username>/<action>', view_func=user_view, method
 user_group_view = UserGroupViewSet.as_view('user_groups_api')
 blueprint.add_url_rule('/users/<username>/groups/', view_func=user_group_view, methods=['POST', 'DELETE'])
 
-group_view = GroupViewSet.as_view('groups_api')
-blueprint.add_url_rule('/groups/', view_func=group_view, methods=["GET", "POST", "DELETE"])
+group_list_view = GroupListViewSet.as_view('groups_api')
+blueprint.add_url_rule('/groups/', view_func=group_list_view, methods=["GET", "POST", "DELETE"])
+
+group_view = GroupViewSet.as_view('group_api')
 blueprint.add_url_rule('/groups/<group_name>', view_func=group_view, methods=["GET", "DELETE"])
-blueprint.add_url_rule('/groups/<group_name>/<action>', view_func=group_view, methods=["GET"])
+
+group_subadmins_view = GroupSubadminViewSet.as_view('group_subadmins_api')
 blueprint.add_url_rule('/groups/<group_name>/subadmins', view_func=group_view, methods=["POST", "DELETE"])
 blueprint.add_url_rule('/groups/<group_name>/subadmins/<username>', view_func=group_view, methods=["DELETE"])
 

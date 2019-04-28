@@ -6,7 +6,7 @@
       <p>List:</p>
       <ul>
         <li v-for="group in groups" :key="group.fqdn">
-          <router-link :to="{name: 'group', params: {id: group.data.cn[0]}}">{{ group.data.cn[0] }}</router-link> <button v-on:click="deleteGroup(group)">delete</button>
+          <router-link :to="{name: 'group', params: {id: group.cn[0]}}">{{ group.cn[0] }}</router-link> <button v-on:click="deleteGroup(group)">delete</button>
         </li>
       </ul>
     </div>

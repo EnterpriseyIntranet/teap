@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="user">
-      <h2>User: {{ user.data['uid'][0] }}</h2>
+      <h2>User: {{ user['uid'][0] }}</h2>
 
         <p>Groups:</p>
         <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>

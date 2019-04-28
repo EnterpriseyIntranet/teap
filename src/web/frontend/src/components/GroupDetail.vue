@@ -1,15 +1,15 @@
 <template>
     <div>
       <div v-if="group">
-        <h2>Group: {{ group.data.cn[0] }}</h2>
+        <h2>Group: {{ group.cn[0] }}</h2>
 
         <p>Users:</p>
-        <ul v-if="group.data.memberUid.length > 0">
-          <li v-for="user in group.data.memberUid" :key="user">
-            <p>{{ user }} <button v-on:click="deleteGroupUser(user)">delete</button></p>
-        </li>
-        </ul>
-        <p v-else-if="group.users.length <= 0">None</p>
+<!--        <ul v-if="group.memberUid.length > 0">-->
+<!--          <li v-for="user in group.memberUid" :key="user">-->
+<!--            <p>{{ user }} <button v-on:click="deleteGroupUser(user)">delete</button></p>-->
+<!--        </li>-->
+<!--        </ul>-->
+<!--        <p v-else-if="group.users.length <= 0">None</p>-->
 
 <!--        <p>Subadmins:</p>-->
 <!--        <ul v-if="group.subadmins && group.subadmins.length > 0">-->
