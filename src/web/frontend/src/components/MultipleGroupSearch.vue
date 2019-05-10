@@ -23,10 +23,10 @@
         @select="selectOption"
         :preserveSearch="true"
       >
-        <template slot="option" slot-scope="{ option }">{{ option.data['cn'][0] }}</template>
+        <template slot="option" slot-scope="{ option }">{{ option['cn'][0] }}</template>
         <template slot="tag" slot-scope="{ option }">
           <span class="custom__tag">
-            <span>{{ option.data['cn'][0] }}</span>
+            <span>{{ option['cn'][0] }}</span>
             <span class="custom__remove" @click="$emit('remove', option)">❌</span>
           </span>
         </template>

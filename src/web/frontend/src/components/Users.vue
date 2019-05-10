@@ -6,7 +6,7 @@
       <p>List:</p>
       <ul>
         <li v-for="user in users" :key="user.fqdn">
-          <router-link :to="{name: 'user', params: {id: user[1]['uid'][0]}}">{{ user[1]['uid'][0] }}</router-link> <button v-on:click="deleteUser(user)">delete</button>
+          <router-link :to="{name: 'user', params: {id: user['uid'][0]}}">{{ user['uid'][0] }}</router-link> <button v-on:click="deleteUser(user)">delete</button>
         </li>
       </ul>
     </div>
