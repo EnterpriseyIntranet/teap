@@ -1,5 +1,6 @@
 """Helper utilities and decorators."""
 import json
+from functools import wraps
 
 from flask import flash
 
@@ -16,3 +17,13 @@ class EncoderWithBytes(json.JSONEncoder):
         if isinstance(obj, bytes):
             return obj.decode('utf-8')
         return json.JSONEncoder.default(self, obj)
+
+
+def api_auth_required(func):
+    """ Authentication check decorator for api """
+    @wraps(func)
+    def _verify(*args, **kwargs):
+        # TODO: add authentication check when authentication backend will be provided
+        # for now always process request
+        return func(*args, **kwargs)
+    return _verify
