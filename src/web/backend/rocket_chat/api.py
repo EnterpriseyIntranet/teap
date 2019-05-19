@@ -10,7 +10,7 @@ blueprint = Blueprint('rocket_chat_api', __name__, url_prefix='/api/rocket')
 
 
 try:
-    rocket = RocketChat(ROCKETCHAT_USER, ROCKETCHAT_PASSWORD, ROCKETCHAT_HOST)
+    rocket = RocketChat(ROCKETCHAT_USER, ROCKETCHAT_PASSWORD, server_url=ROCKETCHAT_HOST)
     rocket_exc = None
 except Exception as e:
     rocket = None
@@ -20,6 +20,7 @@ except Exception as e:
 def check_rocket_authorized():
     if not rocket:
         return jsonify({"message": "Rocket chat instance problem with authorization. {}".format(str(rocket_exc))}), 400
+
 
 blueprint.before_request(check_rocket_authorized)
 
@@ -54,3 +55,12 @@ def invite_to_groups(user_id):
         rocket.groups_invite(group_id, user_id)
 
     return jsonify({"message": "Success"})
+
+
+@blueprint.route('channels', methods=["POST"])
+def create_channel():
+    channel_name = request.json.get('channel_name')
+    res = rocket.channels_create(channel_name)
+    res_data = res.json()
+    return jsonify(res_data), res.status_code
+

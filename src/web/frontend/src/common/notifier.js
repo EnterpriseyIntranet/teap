@@ -8,7 +8,7 @@ const Notifier = {
 
   error (data = {}) {
     Vue.notify({
-      group: 'error',
+      type: 'error',
       title: data.title || 'Error',
       text: data.text || 'Oops, something wrong happened...'
     })
@@ -17,7 +17,7 @@ const Notifier = {
   warning (data = {}) {
     Vue.notify(
       {
-        group: 'warning',
+        type: 'warn',
         title: data.title || 'Warning',
         text: data.text || 'Oops, something wrong happened...'
       }
@@ -27,7 +27,7 @@ const Notifier = {
   success (data = {}) {
     Vue.notify(
       {
-        group: 'success',
+        type: 'success',
         title: data.title || 'Success',
         text: data.text || 'Operation successful'
       }

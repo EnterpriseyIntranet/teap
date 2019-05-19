@@ -72,3 +72,18 @@ This will generate a new migration script. Then run ::
 To apply the migration.
 
 For a full migration command reference, run ``flask db --help``.
+
+
+Pages
+------
+
+**Divisions**
+
+| Divisions are static and list of divisions defined in `ldap.ini` config file under Divisions section.
+| Each division has machine name and display name, in config file you write config machine name as a key, and display name as a value.
+| For example, the Legal division can have display name Legal, and machine name LEG. In config file you write `LEG = Legal`.
+
+| On divisions page you can see 3 lists: for Normal divisions (exists in ldap and in config), Config only divisions, ldap only divisions.
+| You are able to create Config only divisions and delete ldap only divisions.
+| When division is created, 2 more requests are sent to the server - rocket chat channel creation, group folder creation,
+user will see notification if they were successful or some error happened.

@@ -2,11 +2,10 @@
   <div id="app">
     <nav>
       <router-link :to="{name: 'home'}"><img src="./assets/logo.png" class="d-inline-block align-top logo" alt=""></router-link>
+      <router-link :to="{name: 'divisions'}">Divisions</router-link>
     </nav>
     <router-view/>
-    <notifications group="error" position="bottom right" classes="vue-notification error"/>
-    <notifications group="warning" position="bottom right" classes="vue-notification warn"/>
-    <notifications group="success" position="bottom right" classes="vue-notification success"/>
+    <notifications position="bottom right"/>
   </div>
 </template>
 
