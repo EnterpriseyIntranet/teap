@@ -1,12 +1,8 @@
-from flask import Blueprint, jsonify, request, abort, current_app
+from flask import Blueprint, jsonify, request
 from flask.views import MethodView
 
-from edap import Edap, ObjectDoesNotExist
-
 from backend.utils import EncoderWithBytes
-from backend.settings import EDAP_USER, EDAP_DOMAIN, EDAP_HOSTNAME, EDAP_PASSWORD
-
-from .utils import get_config_divisions, merge_divisions
+from .utils import get_config_divisions, merge_divisions, get_edap
 
 blueprint = Blueprint('divisions_api', __name__, url_prefix='/api/ldap/')
 blueprint.json_encoder = EncoderWithBytes
@@ -16,7 +12,7 @@ class EdapMixin:
 
     @property
     def edap(self):
-        return Edap(EDAP_HOSTNAME, EDAP_USER, EDAP_PASSWORD, EDAP_DOMAIN)
+        return get_edap()
 
 
 class DivisionsListViewSet(EdapMixin, MethodView):

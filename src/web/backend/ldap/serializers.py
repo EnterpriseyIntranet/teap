@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, pre_load, post_load, pre_dump
 
-from .models import LdapUser, Franchise
+from .models import LdapUser, LdapFranchise, LdapDivision
 
 # Serializers here are to serialize from edap response to TEAP model from ./models.py for example;
 # Also need separate serializers to serialize from TEAP models to json for api, and to receive data from api and
@@ -49,6 +49,18 @@ class UserSchema(BaseLdapSchema):
         return LdapUser(**data)
 
 
+class EdapDivisionSchema(BaseLdapSchema):
+    """ Receive objects from edap library, serialize to franchise class, load only """
+    machine_name = fields.Str(load_from='cn')
+    display_name = fields.Str(load_from='description')
+
+    single_value_fields = ['cn', 'description']
+
+    @post_load
+    def make_division(self, data):
+        return LdapDivision(**data)
+
+
 class EdapFranchiseSchema(BaseLdapSchema):
     """ Receive objects from edap library, serialize to franchise class, load only """
     machine_name = fields.Str(load_from='cn')
@@ -58,11 +70,14 @@ class EdapFranchiseSchema(BaseLdapSchema):
 
     @post_load
     def make_franchise(self, data):
-        return Franchise(**data)
+        return LdapFranchise(**data)
 
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
+
+edap_division_schema = EdapDivisionSchema()
+edap_divisions_schema = EdapDivisionSchema(many=True)
 
 edap_franchise_schema = EdapFranchiseSchema()
 edap_franchises_schema = EdapFranchiseSchema(many=True)

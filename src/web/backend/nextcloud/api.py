@@ -1,14 +1,13 @@
 from flask import Blueprint, jsonify, request, abort, current_app
 from flask.views import MethodView
 
-from nextcloud import NextCloud
 from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 
 from backend.utils import EncoderWithBytes
 from backend.ldap.api import EdapMixin
 
 from backend.ldap.serializers import users_schema, user_schema
-from .utils import create_group_folder
+from .utils import create_group_folder, get_nextcloud
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
 blueprint.json_encoder = EncoderWithBytes
@@ -21,14 +20,7 @@ class NextCloudMixin:
     @property
     def nextcloud(self):
         """ Get nextcloud instance """
-        # TODO move to singleton global object
-        url = current_app.config['NEXTCLOUD_HOST']
-        username = current_app.config['NEXTCLOUD_USER']
-        password = current_app.config['NEXTCLOUD_PASSWORD']
-        if url is None or username is None or password is None:
-            return jsonify({'message': 'url, username, password fields are required'}), 400
-        nxc = NextCloud(endpoint=url, user=username, password=password)
-        return nxc
+        return get_nextcloud()
 
     def nxc_response(self, nextcloud_response):
         return jsonify({

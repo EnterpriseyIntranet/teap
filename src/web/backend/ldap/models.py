@@ -1,7 +1,5 @@
 """ Models to work with ldap objects, operated by EDAP library """
-
-
-""" Models to work with ldap objects, operated by EDAP library """
+from .utils import get_edap
 
 
 class User:
@@ -30,20 +28,8 @@ class LdapUser(User):
 
 class Franchise:
     def __init__(self, machine_name=None, display_name=None):
-        super(Franchise, self).__init__(fqdn)
         self.machine_name = machine_name
         self.display_name = display_name
-
-    def create_teams(self, edap):
-        """
-        When a new country is created, an LDAP entry is created for it, and team entries are created as well,
-        so there are teams for every <new country>-<division> combination.
-        """
-        divisions = edap.get_divisions()
-        for division in divisions:
-            machine_name = "{}-{}".format(self.machine_name, division.machine_name)
-            display_name = "{}-{}".format(self.display_name, division.display_name)
-            edap.create_division(machine_name, display_name)
 
 
 class LdapFranchise(Franchise):
@@ -53,3 +39,33 @@ class LdapFranchise(Franchise):
 
     def __repr__(self):
         return f'<LdapFranchise(fqdn={self.fqdn}>'
+
+    def create_teams(self):
+        """
+        When a new country is created, an LDAP entry is created for it, and team entries are created as well,
+        so there are teams for every <new country>-<division> combination.
+        """
+        from .serializers import edap_divisions_schema
+        edap = get_edap()
+        divisions = edap_divisions_schema.load(edap.get_divisions()).data
+        for division in divisions:
+            machine_name = "{}-{}".format(self.machine_name, division.machine_name)
+            display_name = "{}-{}".format(self.display_name, division.display_name)
+            edap.create_division(machine_name, display_name)
+
+
+class Division:
+    def __init__(self, fqdn, machine_name=None, display_name=None):
+        super(Division, self).__init__(fqdn)
+        self.machine_name = machine_name
+        self.display_name = display_name
+
+
+class LdapDivision(Division):
+    def __init__(self, fqdn, *args, **kwargs):
+        self.fqdn = fqdn
+        super(LdapDivision, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f'<LdapDivision(fqdn={self.fqdn}>'
+
