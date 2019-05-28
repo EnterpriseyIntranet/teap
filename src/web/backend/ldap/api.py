@@ -47,8 +47,26 @@ class DivisionViewSet(EdapMixin, MethodView):
         return jsonify({'message': 'Deleted'}), 202
 
 
+class FranchiseViewSet(EdapMixin, MethodView):
+
+    def get(self):
+        franchises = self.edap.get_franchises()
+        return jsonify(franchises)
+
+    def post(self):
+        franchise_code = request.json.get('franchise_code')
+        try:
+            res = self.edap.create_franchise(franchise_code)
+        except Exception as e:
+            return jsonify({'message': str(e)}), 400
+        return jsonify({'message': 'success'}), 201
+
+
 divisions_list_view = DivisionsListViewSet.as_view('divisions_api')
 blueprint.add_url_rule('divisions', view_func=divisions_list_view, methods=['GET', 'POST'])
 
 division_view = DivisionViewSet.as_view('division_api')
 blueprint.add_url_rule('divisions/<division_name>', view_func=division_view, methods=['DELETE'])
+
+franchise_view = FranchiseViewSet.as_view('franchise_api')
+blueprint.add_url_rule('franchises', view_func=franchise_view, methods=['GET', 'POST'])

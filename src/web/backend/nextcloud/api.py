@@ -7,8 +7,8 @@ from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 from backend.utils import EncoderWithBytes
 from backend.ldap.api import EdapMixin
 
-from .serializers import users_schema, user_schema
-from .utils import edap_to_dict, create_group_folder
+from backend.ldap.serializers import users_schema, user_schema
+from .utils import create_group_folder
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
 blueprint.json_encoder = EncoderWithBytes

@@ -15,3 +15,13 @@ export const LdapDivisionsService = {
     return ApiService.delete(`ldap/divisions`, divisionName)
   }
 }
+
+export const LdapFranchisesService = {
+  get () {
+    return ApiService.get(`${BASE_URL}franchises`)
+  },
+
+  post (params) {
+    return ApiService.post(`${BASE_URL}franchises`, params)
+  }
+}
