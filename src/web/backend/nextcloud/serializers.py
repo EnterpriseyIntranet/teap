@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, pre_load, post_load, pre_dump
 
-from .models import User
+from .models import LdapUser
 
 
 class BaseLdapSchema(Schema):
@@ -32,13 +32,13 @@ class UserSchema(BaseLdapSchema):
     @pre_dump
     def pre_dump_unpack(self, data):
         # not unpack data if it was previously loaded to User model instance
-        if isinstance(data, User):
+        if isinstance(data, LdapUser):
             return data
         return self.unpack_data(data)
 
     @post_load
     def make_user(self, data):
-        return User(**data)
+        return LdapUser(**data)
 
 
 user_schema = UserSchema()
