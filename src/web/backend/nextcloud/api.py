@@ -176,7 +176,7 @@ class GroupViewSet(NextCloudMixin, EdapMixin, MethodView):
         if len(res) == 0:
             return jsonify({'message': f'Group not found.'}), 404
         elif len(res) > 1:
-            return jsonify({'message': f'More than 1 gorup found'}), 409
+            return jsonify({'message': f'More than 1 group found'}), 409
         return jsonify(res[0])
 
     def delete(self, group_name, username=None):
@@ -237,7 +237,7 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         if not create_group_res.is_ok:
             return jsonify({"message": "Something went wrong during group creation"}), 400
 
-        create_groupfolder_res = create_group_folder(self.nextcloud, group_name, group_type)
+        create_groupfolder_res = create_group_folder(group_name, group_type)
 
         if not create_groupfolder_res:
             return jsonify({"message": "Something went wrong during group folder creation"}), 400
@@ -255,7 +255,7 @@ class GroupFolderViewSet(EdapMixin, NextCloudMixin, MethodView):
         if not group_name or not group_type:  # check if all params present
             return jsonify({'message': 'group_name, group_type are required parameters'}), 400
 
-        create_groupfolder_res = create_group_folder(self.nextcloud, group_name, group_type)
+        create_groupfolder_res = create_group_folder(group_name, group_type)
 
         if not create_groupfolder_res:
             return jsonify({"message": "Something went wrong during group folder creation"}), 400

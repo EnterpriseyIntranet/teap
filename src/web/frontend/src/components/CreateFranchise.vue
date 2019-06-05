@@ -16,7 +16,10 @@
 </template>
 
 <script>
+import axios from 'axios'
 import { LdapFranchisesService } from '@/common/ldap-api.service.js'
+import { GroupFolderService } from '../common/nextcloud-api.service'
+import { RocketChannelsService } from '../common/rocketchat-api.service'
 
 export default {
 
@@ -28,15 +31,30 @@ export default {
   methods: {
 
     createFranchise () {
-      // TODO: create all divisions for country, create chat
       LdapFranchisesService.post({franchise_code: this.franchiseCode})
         .then(response => {
-          this.franchiseCode = null
+          let franchiseDisplayName = response.data.display_name
+          let groupFolderReq = GroupFolderService.post({group_name: this.franchiseCode, group_type: 'franchises'})
+            .catch(error => {
+              this.$notifier.error({title: 'Error creating group folder for division', text: error.response.data.message})
+            })
+          let rocketChannelReq = RocketChannelsService.post({channel_name: `Franchise-${franchiseDisplayName}`})
+            .catch(error => {
+              this.$notifier.error({title: 'Error creating rocket chat channel for division', text: error.response.data.error})
+            })
           this.$notifier.success({text: response.data.message})
-        })
-        .catch(error => {
-          this.$notifier.error({text: error.response.data.message})
-        })
+          this.franchiseCode = null
+          return axios.all([groupFolderReq, rocketChannelReq])
+        }, (error) => {
+          this.$notifier.error({title: 'Error creating division', text: error.response.data.message})
+        }).then(axios.spread((folderRes, rocketChannelRes) => {
+          if (folderRes) {
+            this.$notifier.success({text: 'Group folder created'})
+          }
+          if (rocketChannelRes) {
+            this.$notifier.success({text: 'Rocket channel created'})
+          }
+        }))
     }
 
   }

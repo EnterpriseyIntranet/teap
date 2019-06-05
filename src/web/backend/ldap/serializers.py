@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, pre_load, post_load, pre_dump
 
-from .models import LdapUser, LdapFranchise, LdapDivision
+from .models import LdapUser, LdapFranchise, LdapDivision, LdapTeam
 
 # Serializers here are to serialize from edap response to TEAP model from ./models.py for example;
 # Also need separate serializers to serialize from TEAP models to json for api, and to receive data from api and
@@ -27,13 +27,6 @@ class BaseLdapSchema(Schema):
         """ Unpack data """
         return self.unpack_data(data)
 
-    # @pre_dump
-    # def pre_dump_unpack(self, data):
-    #     # not unpack data if it was previously loaded to User model instance
-    #     if isinstance(data, LdapUser):
-    #         return data
-    #     return self.unpack_data(data)
-
 
 class UserSchema(BaseLdapSchema):
     """ Receive objects from edap library, serialize to user object class, load only  """
@@ -47,6 +40,14 @@ class UserSchema(BaseLdapSchema):
     @post_load
     def make_user(self, data):
         return LdapUser(**data)
+
+    # TODO: delete this method, used to convert from edap dict to front-end without models
+    @pre_dump
+    def pre_dump_unpack(self, data):
+        # not unpack data if it was previously loaded to User model instance
+        if isinstance(data, LdapUser):
+            return data
+        return self.unpack_data(data)
 
 
 class EdapDivisionSchema(BaseLdapSchema):
@@ -73,6 +74,18 @@ class EdapFranchiseSchema(BaseLdapSchema):
         return LdapFranchise(**data)
 
 
+class EdapTeamSchema(BaseLdapSchema):
+    """ Receive objects from edap library, serialize to franchise class, load only """
+    machine_name = fields.Str(load_from='cn')
+    display_name = fields.Str(load_from='description')
+
+    single_value_fields = ['cn', 'description']
+
+    @post_load
+    def make_team(self, data):
+        return LdapTeam(**data)
+
+
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 
@@ -81,3 +94,6 @@ edap_divisions_schema = EdapDivisionSchema(many=True)
 
 edap_franchise_schema = EdapFranchiseSchema()
 edap_franchises_schema = EdapFranchiseSchema(many=True)
+
+edap_team_schema = EdapTeamSchema()
+edap_teams_schema = EdapTeamSchema(many=True)

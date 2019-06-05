@@ -9,7 +9,7 @@ def get_nextcloud():
         g.nextcloud = NextCloud(endpoint=current_app.config['NEXTCLOUD_HOST'],
                                 user=current_app.config['NEXTCLOUD_USER'],
                                 password=current_app.config['NEXTCLOUD_PASSWORD'])
-    return g.edap
+    return g.nextcloud
 
 
 def create_group_folder(group_name, group_type):
@@ -25,8 +25,9 @@ def create_group_folder(group_name, group_type):
     Returns (bool):
     """
     nxc = get_nextcloud()
-    folder_id = get_group_folder(nxc, group_type)
-
+    folder_id = get_group_folder(group_type)
+    # FIXME: access granted to wrong group (on franchise folder example)
+    # issue that nextcloud reads some franchises by Description, not CN
     if folder_id is not None:
         nxc.grant_access_to_group_folder(folder_id, group_name)
     else:
