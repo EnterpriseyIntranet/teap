@@ -1,14 +1,13 @@
 from flask import Blueprint, jsonify, request, abort, current_app
 from flask.views import MethodView
 
-from nextcloud import NextCloud
 from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 
 from backend.utils import EncoderWithBytes
 from backend.ldap.api import EdapMixin
 
-from .serializers import users_schema, user_schema
-from .utils import edap_to_dict, create_group_folder
+from backend.ldap.serializers import users_schema, user_schema
+from .utils import create_group_folder, get_nextcloud
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
 blueprint.json_encoder = EncoderWithBytes
@@ -21,14 +20,7 @@ class NextCloudMixin:
     @property
     def nextcloud(self):
         """ Get nextcloud instance """
-        # TODO move to singleton global object
-        url = current_app.config['NEXTCLOUD_HOST']
-        username = current_app.config['NEXTCLOUD_USER']
-        password = current_app.config['NEXTCLOUD_PASSWORD']
-        if url is None or username is None or password is None:
-            return jsonify({'message': 'url, username, password fields are required'}), 400
-        nxc = NextCloud(endpoint=url, user=username, password=password)
-        return nxc
+        return get_nextcloud()
 
     def nxc_response(self, nextcloud_response):
         return jsonify({
@@ -184,7 +176,7 @@ class GroupViewSet(NextCloudMixin, EdapMixin, MethodView):
         if len(res) == 0:
             return jsonify({'message': f'Group not found.'}), 404
         elif len(res) > 1:
-            return jsonify({'message': f'More than 1 gorup found'}), 409
+            return jsonify({'message': f'More than 1 group found'}), 409
         return jsonify(res[0])
 
     def delete(self, group_name, username=None):
@@ -245,7 +237,7 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         if not create_group_res.is_ok:
             return jsonify({"message": "Something went wrong during group creation"}), 400
 
-        create_groupfolder_res = create_group_folder(self.nextcloud, group_name, group_type)
+        create_groupfolder_res = create_group_folder(group_name, group_type)
 
         if not create_groupfolder_res:
             return jsonify({"message": "Something went wrong during group folder creation"}), 400
@@ -263,7 +255,7 @@ class GroupFolderViewSet(EdapMixin, NextCloudMixin, MethodView):
         if not group_name or not group_type:  # check if all params present
             return jsonify({'message': 'group_name, group_type are required parameters'}), 400
 
-        create_groupfolder_res = create_group_folder(self.nextcloud, group_name, group_type)
+        create_groupfolder_res = create_group_folder(group_name, group_type)
 
         if not create_groupfolder_res:
             return jsonify({"message": "Something went wrong during group folder creation"}), 400

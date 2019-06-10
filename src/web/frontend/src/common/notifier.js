@@ -9,6 +9,7 @@ const Notifier = {
   error (data = {}) {
     Vue.notify({
       type: 'error',
+      duration: -1, // forever
       title: data.title || 'Error',
       text: data.text || 'Oops, something wrong happened...'
     })

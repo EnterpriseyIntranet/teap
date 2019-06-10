@@ -1,4 +1,16 @@
+from flask import g, current_app
+from edap import Edap
 import configparser
+
+
+def get_edap():
+    """ Create if doesn't exist or return edap from flask g object """
+    if 'edap' not in g:
+        g.edap = Edap(current_app.config['EDAP_HOSTNAME'],
+                      current_app.config['EDAP_USER'],
+                      current_app.config['EDAP_PASSWORD'],
+                      current_app.config['EDAP_DOMAIN'])
+    return g.edap
 
 
 def get_config_divisions():

@@ -16,7 +16,7 @@
         :clear-on-select="false"
         :close-on-select="false"
         :options-limit="10"
-        :limit="5"
+        :limit="15"
         :show-no-results="false"
         :hide-selected="true"
         @search-change="debounceAsyncSearch"
