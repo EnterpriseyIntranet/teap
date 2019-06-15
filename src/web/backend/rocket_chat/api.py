@@ -1,25 +1,17 @@
-from flask import Blueprint, jsonify, request
-from flask.views import MethodView
+from flask import Blueprint, jsonify, request, g
 
-from rocketchat_API.rocketchat import RocketChat
-
-from backend.settings import ROCKETCHAT_HOST, ROCKETCHAT_PASSWORD, ROCKETCHAT_USER
-
+from .utils import get_rocket
 
 blueprint = Blueprint('rocket_chat_api', __name__, url_prefix='/api/rocket')
 
 
-try:
-    rocket = RocketChat(ROCKETCHAT_USER, ROCKETCHAT_PASSWORD, server_url=ROCKETCHAT_HOST)
-    rocket_exc = None
-except Exception as e:
-    rocket = None
-    rocket_exc = e
-
-
 def check_rocket_authorized():
+    rocket = get_rocket()
     if not rocket:
-        return jsonify({"message": "Rocket chat instance problem with authorization. {}".format(str(rocket_exc))}), 400
+        rocket_exception = g.rocket_exception
+        return jsonify({
+            "message": "Rocket chat instance problem with authorization. {}".format(str(rocket_exception))
+        }), 400
 
 
 blueprint.before_request(check_rocket_authorized)
@@ -27,11 +19,11 @@ blueprint.before_request(check_rocket_authorized)
 
 @blueprint.route('users', methods=["POST"])
 def create_user():
+    rocket = get_rocket()
     username = request.json.get('username')
     password = request.json.get('password')
     email = request.json.get('email')
     name = request.json.get('name')
-
     if not all([username, password, email, name]):
         return jsonify({"message": "username, password, email, name are required fields"}), 400
 
@@ -39,13 +31,14 @@ def create_user():
     data = res.json()
 
     if res.status_code == 200 and data.get('success', True):
-        return jsonify({'user': data.get('user')}), True
+        return jsonify({'user': data.get('user')}), 201
     else:
         return jsonify({'message': data.get('error', ' Something wrong happened')}), 400
 
 
 @blueprint.route('users/<user_id>/groups')
 def invite_to_groups(user_id):
+    rocket = get_rocket()
     groups_ids = request.json.get('groups')
 
     if not groups_ids:
@@ -59,6 +52,7 @@ def invite_to_groups(user_id):
 
 @blueprint.route('channels', methods=["POST"])
 def create_channel():
+    rocket = get_rocket()
     channel_name = request.json.get('channel_name')
     res = rocket.channels_create(channel_name)
     res_data = res.json()

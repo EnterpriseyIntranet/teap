@@ -7,6 +7,7 @@ from backend.utils import EncoderWithBytes
 from backend.ldap.api import EdapMixin
 
 from backend.ldap.serializers import users_schema, user_schema
+from backend.ldap.models import LdapUser
 from .utils import create_group_folder, get_nextcloud
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
@@ -49,12 +50,10 @@ class UserListViewSet(NextCloudMixin, EdapMixin, MethodView):
             return jsonify({'message': 'username, password, name, surname fields are required'}), 400
 
         try:
-            self.edap.add_user(username, name, surname, password)
+            user = LdapUser(uid=username, given_name=name, surname=surname, groups=groups)
+            user.create(password=password)
         except ConstraintError as e:
             return jsonify({'message': "Failed to create user. {}".format(e)})
-
-        for group in groups:
-            self.edap.make_uid_member_of(username, group)
 
         return jsonify({'status': True})
 

@@ -1,15 +1,18 @@
 """ Models to work with ldap objects, operated by EDAP library """
+from edap import ObjectDoesNotExist
+
 from .utils import get_edap
 
 # TODO: separate layer with edap from data models
 
 
 class User:
-    def __init__(self, uid, given_name, mail, surname):
+    def __init__(self, uid, given_name, mail=None, surname=None, groups=None):
         self.uid = uid
         self.given_name = given_name
         self.mail = mail
         self.surname = surname
+        self.groups = groups
 
     def delete_user(self, *args, **kwargs):
         pass
@@ -27,9 +30,16 @@ class LdapUser(User):
     def __repr__(self):
         return f'<LdapUser(fqdn={self.fqdn}, uid={self.uid})>'
 
-    def create(self):
-        # TODO: move creation here with creating rocket-chat profile
-        pass
+    def create(self, password):
+        edap = get_edap()
+        edap.add_user(self.uid, self.given_name, self.surname, password)
+
+        for group in self.groups:
+            edap.make_uid_member_of(self.uid, group)
+
+        # add user to 'Everybody' team
+        everybody_team = LdapTeam.get_everybody_team()
+        edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
 
     def get_teams(self):
         """ Get teams where user is a member """
@@ -72,6 +82,7 @@ class LdapFranchise(Franchise):
         self.display_name = edap.label_franchise(self.machine_name).encode("UTF-8")
         # TODO: better move to celery, because takes time
         self.create_teams()
+        # TODO: create folder, with read rights for 'everybody' team, read-write for members of a country
 
     def create_teams(self):
         """
@@ -133,10 +144,26 @@ class Team:
 
 
 class LdapTeam(Team):
+
+    EVERYBODY_MACHINE_NAME = 'everybody'
+    EVERYBODY_DISPLAY_NAME = 'Everybody'
+
     def __init__(self, fqdn=None, *args, **kwargs):
         self.fqdn = fqdn
         super(LdapTeam, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         return f'<LdapTeam(fqdn={self.fqdn}>'
+
+    @staticmethod
+    def get_everybody_team():
+        """ Get or create and return 'Everybody' Team """
+        from .serializers import edap_team_schema
+        edap = get_edap()
+        try:
+            everybody_team = edap.get_team(LdapTeam.EVERYBODY_MACHINE_NAME)
+        except ObjectDoesNotExist:
+            edap.create_team(LdapTeam.EVERYBODY_MACHINE_NAME, LdapTeam.EVERYBODY_DISPLAY_NAME)
+            everybody_team = edap.get_team(LdapTeam.EVERYBODY_MACHINE_NAME)
+        return edap_team_schema.load(everybody_team).data
 

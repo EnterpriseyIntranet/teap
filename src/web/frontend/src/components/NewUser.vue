@@ -16,6 +16,10 @@
         <input type="text" v-model="user.username">
       </p>
       <p>
+        <label>Email:</label>
+        <input type="email" v-model="user.email">
+      </p>
+      <p>
         <label>Password:</label>
         <input type="password" v-model="user.password">
       </p>
@@ -45,7 +49,9 @@
 </template>
 
 <script>
-import { NxcUsersService, GroupWithFolderService } from '../common/nextcloud-api.service.js'
+import axios from 'axios'
+import { NxcUsersService, GroupWithFolderService } from '@/common/nextcloud-api.service.js'
+import { RocketUsersService } from '@/common/rocketchat-api.service.js'
 import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
 
 export default {
@@ -60,6 +66,7 @@ export default {
         surname: null,
         username: null,
         password: null,
+        email: null,
         groups: []
       },
       groupExists: true,
@@ -73,7 +80,7 @@ export default {
   methods: {
 
     createUser () {
-      if (!this.user.username) {
+      if (!this.user.username || !this.user.surname || !this.user.name || !this.user.password) {
         return null
       }
       let groups = []
@@ -84,9 +91,17 @@ export default {
       data.groups = groups
       NxcUsersService.post(data)
         .then(response => {
-          console.log('success')
-          this.$router.push({name: 'user', params: {id: this.user.username}})
+          let createRocketUser = RocketUsersService.post(data)
+            .catch(error => {
+              this.$notifier.error({title: 'Error creating rocket chat user', text: error.response.data.message})
+            })
+          return axios.all([createRocketUser])
+        }, (error) => {
+          this.$notifier.error({title: 'Error creating user', text: error.response.data.message})
         })
+        .then(axios.spread((rocketRes) => {
+          this.$router.push({name: 'user', params: {id: this.user.username}})
+        }))
         .catch((error) => {
           this.$notifier.error({text: error.response.data.message})
         })
