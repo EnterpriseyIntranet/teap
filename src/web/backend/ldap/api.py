@@ -3,7 +3,7 @@ from flask.views import MethodView
 from edap import ObjectDoesNotExist
 
 from backend.utils import EncoderWithBytes
-from .serializers import user_schema, edap_team_schema
+from .serializers import user_schema, edap_franchise_schema
 from .models import LdapDivision, LdapFranchise
 from .utils import get_config_divisions, merge_divisions, get_edap
 
@@ -70,6 +70,14 @@ class FranchiseViewSet(EdapMixin, MethodView):
                         'display_name': franchise.display_name}), 201
 
 
+class FranchiseFoldersViewSet(EdapMixin, MethodView):
+
+    def post(self, franchise_machine_name):
+        franchise = edap_franchise_schema.load(self.edap.get_franchise(franchise_machine_name)).data
+        res = franchise.create_folder(franchise.display_name)
+        return jsonify({'success': res}), 201 if res else 500
+
+
 class UserTeamsViewSet(EdapMixin, MethodView):
 
     def post(self, uid):
@@ -88,6 +96,9 @@ blueprint.add_url_rule('divisions/<division_name>', view_func=division_view, met
 
 franchise_view = FranchiseViewSet.as_view('franchise_api')
 blueprint.add_url_rule('franchises', view_func=franchise_view, methods=['GET', 'POST'])
+
+franchise_folders_view = FranchiseFoldersViewSet.as_view('franchise_folders_api')
+blueprint.add_url_rule('franchises/<franchise_machine_name>/folders', view_func=franchise_folders_view, methods=['POST'])
 
 user_teams_view = UserTeamsViewSet.as_view('user_teams_api')
 blueprint.add_url_rule('user-teams/<uid>', view_func=user_teams_view, methods=['POST'])

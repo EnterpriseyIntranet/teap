@@ -1,7 +1,9 @@
 """ Models to work with ldap objects, operated by EDAP library """
 from edap import ObjectDoesNotExist
+from nextcloud.base import Permission as NxcPermission
 
 from .utils import get_edap
+from backend.nextcloud.utils import get_nextcloud, get_group_folder
 
 # TODO: separate layer with edap from data models
 
@@ -62,12 +64,45 @@ class LdapUser(User):
 
 
 class Franchise:
+
+    GROUP_FOLDER = 'Franchises'
+
     def __init__(self, machine_name=None, display_name=None):
         self.machine_name = machine_name
         self.display_name = display_name
 
+    @staticmethod
+    def create_folder(folder_name):
+        """
+        Create subfolder in 'Franchises' folder with read-write access to members of Franchise
+        and read access for 'Everybody' team
+        """
+        nxc = get_nextcloud()
+        main_franchises_folder = get_group_folder(Franchise.GROUP_FOLDER)
+
+        if not main_franchises_folder:
+            LdapFranchise.create_main_folder()
+
+        create_folder_res = nxc.create_group_folder("/".join([Franchise.GROUP_FOLDER, folder_name]))
+        grant_access_res = nxc.grant_access_to_group_folder(create_folder_res.data['id'], folder_name)
+        grant_everybody_access = nxc.grant_access_to_group_folder(create_folder_res.data['id'],
+                                                                  LdapTeam.EVERYBODY_MACHINE_NAME)
+        return create_folder_res.is_ok and grant_access_res.is_ok and grant_everybody_access.is_ok
+
+    @staticmethod
+    def create_main_folder():
+        """ Create main 'Franchises' folder in root directory with read rights for 'Everybody' team """
+        nxc = get_nextcloud()
+        create_main_folder_res = nxc.create_group_folder(Franchise.GROUP_FOLDER)
+        main_folder_id = create_main_folder_res.data['id']
+        nxc.grant_access_to_group_folder(main_folder_id, LdapTeam.EVERYBODY_MACHINE_NAME)
+        nxc.set_permissions_to_group_folder(main_folder_id,
+                                            LdapTeam.EVERYBODY_MACHINE_NAME,
+                                            str(NxcPermission.READ.value))
+
 
 class LdapFranchise(Franchise):
+
     def __init__(self, fqdn=None, *args, **kwargs):
         self.fqdn = fqdn
         super(LdapFranchise, self).__init__(*args, **kwargs)
@@ -82,7 +117,6 @@ class LdapFranchise(Franchise):
         self.display_name = edap.label_franchise(self.machine_name).encode("UTF-8")
         # TODO: better move to celery, because takes time
         self.create_teams()
-        # TODO: create folder, with read rights for 'everybody' team, read-write for members of a country
 
     def create_teams(self):
         """

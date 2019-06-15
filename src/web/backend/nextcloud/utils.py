@@ -50,9 +50,7 @@ def get_group_folder(mount_point):
     Returns:
     """
     nxc = get_nextcloud()
-    group_folders = nxc.get_group_folders().data
+    group_folders = nxc.get_group_folders(mount_point=mount_point).data
     if group_folders:  # if there is no group folders, response data will be empty list
-        for key, value in group_folders.items():
-            if value['mount_point'] == mount_point:
-                return key
+        return next(iter(group_folders))
     return None

@@ -17,8 +17,7 @@
 
 <script>
 import axios from 'axios'
-import { LdapFranchisesService } from '@/common/ldap-api.service.js'
-import { GroupFolderService } from '../common/nextcloud-api.service'
+import { LdapFranchisesService, LdapFranchiseFolderService } from '@/common/ldap-api.service.js'
 import { RocketChannelsService } from '../common/rocketchat-api.service'
 
 export default {
@@ -34,7 +33,7 @@ export default {
       LdapFranchisesService.post({franchise_code: this.franchiseCode})
         .then(response => {
           let franchiseDisplayName = response.data.display_name
-          let groupFolderReq = GroupFolderService.post({group_name: this.franchiseCode, group_type: 'franchises'})
+          let groupFolderReq = LdapFranchiseFolderService.post(this.franchiseCode)
             .catch(error => {
               this.$notifier.error({title: 'Error creating group folder for division', text: error.response.data.message})
             })

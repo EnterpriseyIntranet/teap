@@ -25,3 +25,9 @@ export const LdapFranchisesService = {
     return ApiService.post(`${BASE_URL}franchises`, params)
   }
 }
+
+export const LdapFranchiseFolderService = {
+  post (franchiseMachineName) {
+    return ApiService.post(`${BASE_URL}franchises/${franchiseMachineName}/folders`)
+  }
+}
