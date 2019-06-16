@@ -6,7 +6,8 @@ from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 from backend.utils import EncoderWithBytes
 from backend.ldap.api import EdapMixin
 
-from backend.ldap.serializers import users_schema, user_schema
+from backend.ldap.serializers import edap_users_schema, edap_user_schema
+from backend.ldap.api_serializers import api_user_schema, api_users_schema
 from backend.ldap.models import LdapUser
 from .utils import create_group_folder, get_nextcloud
 
@@ -36,8 +37,8 @@ class UserListViewSet(NextCloudMixin, EdapMixin, MethodView):
     def get(self):
         """ List users """
         res = self.edap.get_users()
-        data = users_schema.dump(res).data
-        return jsonify(data)
+        data = edap_users_schema.load(res).data
+        return jsonify(api_users_schema.dump(data).data)
 
     def post(self):
         """ Create user """
@@ -65,14 +66,14 @@ class UserRetrieveViewSet(NextCloudMixin,
     def get(self, username):
         """ List users """
         try:
-            res = self.edap.get_user(username)
+            res = edap_user_schema.load(self.edap.get_user(username)).data
         except MultipleObjectsFound:
             return jsonify({'message': 'More than 1 user found'}), 409
         except ObjectDoesNotExist:
             return jsonify({'message': 'User does not exist'}), 404
         user_groups = self.edap.get_user_groups(username)
         res = {
-            **user_schema.dump(res).data,
+            **api_user_schema.dump(res).data,
             "groups": [group for group in user_groups]
         }
         return jsonify(res)

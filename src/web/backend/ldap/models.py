@@ -9,7 +9,7 @@ from backend.nextcloud.utils import get_nextcloud, get_group_folder
 
 
 class User:
-    def __init__(self, uid, given_name, mail=None, surname=None, groups=None):
+    def __init__(self, uid, given_name=None, mail=None, surname=None, groups=None):
         self.uid = uid
         self.given_name = given_name
         self.mail = mail
@@ -108,13 +108,12 @@ class LdapFranchise(Franchise):
         super(LdapFranchise, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return f'<LdapFranchise(fqdn={self.fqdn}>'
+        return f'<LdapFranchise(fqdn={self.fqdn})>'
 
     def create(self):
         """ Create franchise with self.machine_name, self.display_name, create corresponding teams """
         edap = get_edap()
-        edap.create_franchise(self.machine_name)
-        self.display_name = edap.label_franchise(self.machine_name).encode("UTF-8")
+        edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
         # TODO: better move to celery, because takes time
         self.create_teams()
 

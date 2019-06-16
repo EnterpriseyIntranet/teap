@@ -6,7 +6,10 @@
       <p>Franchises:</p>
       <ul v-if="franchises">
         <li v-for="franchise in franchises" :key="franchise.fqdn">
-          <p>{{ franchise }}</p>
+          <p>
+            <strong>Display name:</strong> {{ franchise.displayName }};
+            <strong>Machine name:</strong> {{ franchise.machineName }}
+          </p>
         </li>
       </ul>
     </div>
