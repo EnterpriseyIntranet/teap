@@ -26,6 +26,12 @@ export const LdapFranchisesService = {
   }
 }
 
+export const LdapFranchiseService = {
+  getSuggestedName (franchiseMachineName) {
+    return ApiService.get(`${BASE_URL}franchises/${franchiseMachineName}/suggested-name`)
+  }
+}
+
 export const LdapFranchiseFolderService = {
   post (franchiseMachineName) {
     return ApiService.post(`${BASE_URL}franchises/${franchiseMachineName}/folders`)

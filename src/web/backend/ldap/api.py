@@ -1,11 +1,11 @@
 from flask import Blueprint, jsonify, request
 from flask.views import MethodView
-from edap import ObjectDoesNotExist
+from edap import ObjectDoesNotExist, ConstraintError
 
 from backend.utils import EncoderWithBytes
 from .serializers import edap_user_schema, edap_franchise_schema, edap_franchises_schema
 from .api_serializers import api_franchise_schema, api_franchises_schema
-from .models import LdapDivision
+from .models import LdapDivision, LdapFranchise
 from .utils import get_config_divisions, merge_divisions, get_edap
 
 blueprint = Blueprint('divisions_api', __name__, url_prefix='/api/ldap/')
@@ -54,7 +54,7 @@ class DivisionViewSet(EdapMixin, MethodView):
         return jsonify({'message': 'Deleted'}), 202
 
 
-class FranchiseViewSet(EdapMixin, MethodView):
+class FranchisesViewSet(EdapMixin, MethodView):
 
     def get(self):
         franchises = edap_franchises_schema.load(self.edap.get_franchises()).data
@@ -64,9 +64,19 @@ class FranchiseViewSet(EdapMixin, MethodView):
         franchise = api_franchise_schema.load(request.json).data
         try:
             franchise.create()
+        except ConstraintError as e:
+            return jsonify({'message': str(e)}), 409
         except Exception as e:
             return jsonify({'message': str(e)}), 400
         return jsonify(api_franchise_schema.dump(franchise).data), 201
+
+
+def suggest_franchise_name(franchise_machine_name):
+    try:
+        suggested_name = LdapFranchise.suggest_name(franchise_machine_name)
+    except KeyError:
+        return jsonify({'message': 'Unknown country code'}), 400
+    return jsonify({'data': suggested_name})
 
 
 class FranchiseFoldersViewSet(EdapMixin, MethodView):
@@ -93,8 +103,12 @@ blueprint.add_url_rule('divisions', view_func=divisions_list_view, methods=['GET
 division_view = DivisionViewSet.as_view('division_api')
 blueprint.add_url_rule('divisions/<division_name>', view_func=division_view, methods=['DELETE'])
 
-franchise_view = FranchiseViewSet.as_view('franchise_api')
-blueprint.add_url_rule('franchises', view_func=franchise_view, methods=['GET', 'POST'])
+franchises_view = FranchisesViewSet.as_view('franchise_api')
+blueprint.add_url_rule('franchises', view_func=franchises_view, methods=['GET', 'POST'])
+
+blueprint.add_url_rule('franchises/<franchise_machine_name>/suggested-name',
+                       view_func=suggest_franchise_name,
+                       methods=['GET'])
 
 franchise_folders_view = FranchiseFoldersViewSet.as_view('franchise_folders_api')
 blueprint.add_url_rule('franchises/<franchise_machine_name>/folders', view_func=franchise_folders_view, methods=['POST'])

@@ -1,10 +1,13 @@
-from marshmallow import Schema, fields, pre_load, post_load, pre_dump
+"""
+Serializers to process data from .models instances to json and backwards to transfer data via REST api
+"""
+from marshmallow import Schema, fields, post_load
 
-from .models import LdapUser, LdapFranchise, LdapDivision, LdapTeam
+from .models import LdapUser, LdapFranchise
 
 
 class ApiUserSchema(Schema):
-
+    """ Serialize .models.LdapUser instances to json and backwards """
     uid = fields.Str()
     given_name = fields.Str()
     mail = fields.Str()
@@ -16,7 +19,7 @@ class ApiUserSchema(Schema):
 
 
 class ApiFranchiseSchema(Schema):
-    """ Receive objects from edap library, serialize to franchise class, load only """
+    """ Serialize .models.LdapFranchise instances to json and backwards """
     machine_name = fields.Str(dump_to='machineName', load_from='machineName')
     display_name = fields.Str(dump_to='displayName', load_from='displayName')
 

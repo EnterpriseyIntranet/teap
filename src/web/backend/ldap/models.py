@@ -1,5 +1,5 @@
 """ Models to work with ldap objects, operated by EDAP library """
-from edap import ObjectDoesNotExist
+from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
 from .utils import get_edap
@@ -52,7 +52,6 @@ class LdapUser(User):
 
     def add_to_team(self, team_machine_name):
         """ Add user to team and to respective franchise and division groups """
-        # TODO: add to rocket channel
         from .serializers import edap_franchise_schema, edap_division_schema
         edap = get_edap()
         edap.make_user_member_of_team(self.uid, team_machine_name)
@@ -113,6 +112,8 @@ class LdapFranchise(Franchise):
     def create(self):
         """ Create franchise with self.machine_name, self.display_name, create corresponding teams """
         edap = get_edap()
+        if LdapFranchise.check_exists_by_display_name(self.display_name):
+            raise ConstraintError('Franchise with such display name already exists')
         edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
         # TODO: better move to celery, because takes time
         self.create_teams()
@@ -131,6 +132,36 @@ class LdapFranchise(Franchise):
             machine_name = edap.make_team_machine_name(self.machine_name, division.machine_name)
             display_name = edap.make_team_display_name(self.display_name, division.display_name)
             edap.create_team(machine_name, display_name)
+
+    @staticmethod
+    def check_exists_by_display_name(display_name):
+        """
+        Check if franchise with such display name already exists
+
+        Args:
+            display_name (str): display name of franchise
+
+        Returns (bool):
+        """
+        edap = get_edap()
+        franchises = edap.get_franchises(f'description={display_name}')
+        return bool(franchises)
+
+    @staticmethod
+    def suggest_name(franchise_machine_name):
+        """
+        Suggest name for franchise by it's machine name
+        Args:
+            franchise_machine_name (str): franchise machine name
+
+        Returns (str):
+        """
+        edap = get_edap()
+        labelled_name = edap.label_franchise(franchise_machine_name)
+        # TODO: add logic if such display name already exists
+        # if LdapFranchise.check_exists_by_display_name(labelled_name)
+        #     return 'already exists'
+        return labelled_name
 
 
 class Division:
