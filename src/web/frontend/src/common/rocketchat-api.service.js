@@ -8,3 +8,10 @@ export const RocketChannelsService = {
     return ApiService.post(`${BASE_URL}channels`, params)
   }
 }
+
+export const RocketUsersService = {
+
+  post (params) {
+    return ApiService.post(`${BASE_URL}users`, params)
+  }
+}
