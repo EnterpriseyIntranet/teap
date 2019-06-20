@@ -27,27 +27,23 @@ class BaseLdapSchema(Schema):
         """ Unpack data """
         return self.unpack_data(data)
 
+    def dump(self, *args, **kwargs):
+        # not needed for now as we don't convert models to edap data structures
+        raise NotImplementedError()
+
 
 class UserSchema(BaseLdapSchema):
     """ Receive objects from edap library, serialize to user object class, load only  """
     uid = fields.Str()
-    given_name = fields.Str(load_from='givenName', dump_to='givenName')
+    given_name = fields.Str(load_from='givenName')
     mail = fields.Str()
-    surname = fields.Str(load_from='sn', dump_to='sn')
+    surname = fields.Str(load_from='sn')
 
     single_value_fields = ['uid', 'givenName', 'mail', 'sn']
 
     @post_load
     def make_user(self, data):
         return LdapUser(**data)
-
-    # TODO: delete this method, used to convert from edap dict to front-end without models
-    @pre_dump
-    def pre_dump_unpack(self, data):
-        # not unpack data if it was previously loaded to User model instance
-        if isinstance(data, LdapUser):
-            return data
-        return self.unpack_data(data)
 
 
 class EdapDivisionSchema(BaseLdapSchema):
@@ -86,8 +82,8 @@ class EdapTeamSchema(BaseLdapSchema):
         return LdapTeam(**data)
 
 
-user_schema = UserSchema()
-users_schema = UserSchema(many=True)
+edap_user_schema = UserSchema()
+edap_users_schema = UserSchema(many=True)
 
 edap_division_schema = EdapDivisionSchema()
 edap_divisions_schema = EdapDivisionSchema(many=True)

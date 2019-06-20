@@ -1,9 +1,10 @@
 from flask import Blueprint, jsonify, request
 from flask.views import MethodView
-from edap import ObjectDoesNotExist
+from edap import ObjectDoesNotExist, ConstraintError
 
 from backend.utils import EncoderWithBytes
-from .serializers import user_schema, edap_franchise_schema
+from .serializers import edap_user_schema, edap_franchise_schema, edap_franchises_schema
+from .api_serializers import api_franchise_schema, api_franchises_schema
 from .models import LdapDivision, LdapFranchise
 from .utils import get_config_divisions, merge_divisions, get_edap
 
@@ -53,21 +54,29 @@ class DivisionViewSet(EdapMixin, MethodView):
         return jsonify({'message': 'Deleted'}), 202
 
 
-class FranchiseViewSet(EdapMixin, MethodView):
+class FranchisesViewSet(EdapMixin, MethodView):
 
     def get(self):
-        franchises = self.edap.get_franchises()
-        return jsonify(franchises)
+        franchises = edap_franchises_schema.load(self.edap.get_franchises()).data
+        return jsonify(api_franchises_schema.dump(franchises).data)
 
     def post(self):
-        franchise_code = request.json.get('franchise_code')
+        franchise = api_franchise_schema.load(request.json).data
         try:
-            franchise = LdapFranchise(machine_name=franchise_code)
             franchise.create()
+        except ConstraintError as e:
+            return jsonify({'message': str(e)}), 409
         except Exception as e:
             return jsonify({'message': str(e)}), 400
-        return jsonify({'message': 'success',
-                        'display_name': franchise.display_name}), 201
+        return jsonify(api_franchise_schema.dump(franchise).data), 201
+
+
+def suggest_franchise_name(franchise_machine_name):
+    try:
+        suggested_name = LdapFranchise.suggest_name(franchise_machine_name)
+    except KeyError:
+        return jsonify({'message': 'Unknown country code'}), 400
+    return jsonify({'data': suggested_name})
 
 
 class FranchiseFoldersViewSet(EdapMixin, MethodView):
@@ -82,7 +91,7 @@ class UserTeamsViewSet(EdapMixin, MethodView):
 
     def post(self, uid):
         """ add user to team """
-        user = user_schema.load(self.edap.get_user(uid)).data
+        user = edap_user_schema.load(self.edap.get_user(uid)).data
         team_machine_name = request.json.get('team')
         user.add_to_team(team_machine_name)
         return {'message': 'success'}
@@ -94,8 +103,12 @@ blueprint.add_url_rule('divisions', view_func=divisions_list_view, methods=['GET
 division_view = DivisionViewSet.as_view('division_api')
 blueprint.add_url_rule('divisions/<division_name>', view_func=division_view, methods=['DELETE'])
 
-franchise_view = FranchiseViewSet.as_view('franchise_api')
-blueprint.add_url_rule('franchises', view_func=franchise_view, methods=['GET', 'POST'])
+franchises_view = FranchisesViewSet.as_view('franchise_api')
+blueprint.add_url_rule('franchises', view_func=franchises_view, methods=['GET', 'POST'])
+
+blueprint.add_url_rule('franchises/<franchise_machine_name>/suggested-name',
+                       view_func=suggest_franchise_name,
+                       methods=['GET'])
 
 franchise_folders_view = FranchiseFoldersViewSet.as_view('franchise_folders_api')
 blueprint.add_url_rule('franchises/<franchise_machine_name>/folders', view_func=franchise_folders_view, methods=['POST'])
