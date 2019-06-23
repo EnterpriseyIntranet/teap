@@ -2,19 +2,23 @@
 from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
-from .utils import get_edap
+from .utils import EdapMixin, get_edap
 from backend.nextcloud.utils import get_nextcloud, get_group_folder
 
 # TODO: separate layer with edap from data models
 
 
 class User:
-    def __init__(self, uid, given_name=None, mail=None, surname=None, groups=None):
+    def __init__(self, uid, given_name=None, mail=None, surname=None, groups=None, franchises=None, divisions=None,
+                 teams=None):
         self.uid = uid
         self.given_name = given_name
         self.mail = mail
         self.surname = surname
-        self.groups = groups
+        self.groups = groups  # TODO: groups are separated for franchises, divisions, teams, so delete
+        self.franchises = franchises
+        self.divisions = divisions
+        self.teams = teams
 
     def delete_user(self, *args, **kwargs):
         pass
@@ -23,7 +27,7 @@ class User:
         pass
 
 
-class LdapUser(User):
+class LdapUser(EdapMixin, User):
 
     def __init__(self, fqdn=None, *args, **kwargs):
         self.fqdn = fqdn
@@ -33,33 +37,65 @@ class LdapUser(User):
         return f'<LdapUser(fqdn={self.fqdn}, uid={self.uid})>'
 
     def create(self, password):
-        edap = get_edap()
-        edap.add_user(self.uid, self.given_name, self.surname, password)
+        self.edap.add_user(self.uid, self.given_name, self.surname, password)
 
         for group in self.groups:
-            edap.make_uid_member_of(self.uid, group)
+            self.edap.make_uid_member_of(self.uid, group)
 
         # add user to 'Everybody' team
         everybody_team = LdapTeam.get_everybody_team()
-        edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
+        self.edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
 
     def get_teams(self):
         """ Get teams where user is a member """
         from .serializers import edap_teams_schema
-        edap = get_edap()
-        user_teams = edap.get_teams(f'memberUid={self.uid}')
+        user_teams = self.edap.get_teams(f'memberUid={self.uid}')
         return edap_teams_schema.load(user_teams).data
 
     def add_to_team(self, team_machine_name):
         """ Add user to team and to respective franchise and division groups """
         from .serializers import edap_franchise_schema, edap_division_schema
-        edap = get_edap()
-        edap.make_user_member_of_team(self.uid, team_machine_name)
-        franchise, division = edap.get_team_component_units(team_machine_name)
+        self.edap.make_user_member_of_team(self.uid, team_machine_name)
+        franchise, division = self.edap.get_team_component_units(team_machine_name)
         franchise = edap_franchise_schema.load(franchise).data
         division = edap_division_schema.load(division).data
-        edap.make_user_member_of_franchise(self.uid, franchise.machine_name)
-        edap.make_uid_member_of_division(self.uid, division.machine_name)
+        self.edap.make_user_member_of_franchise(self.uid, franchise.machine_name)
+        self.edap.make_uid_member_of_division(self.uid, division.machine_name)
+
+    def remove_from_team(self, team_machine_name):
+        """ Remove user from team """
+        self.edap.remove_uid_member_of_team(self.uid, team_machine_name)
+
+    def get_franchises(self):
+        from .serializers import edap_franchises_schema
+        franchises_raw = self.edap.get_franchises(f'memberUid={self.uid}')
+        return edap_franchises_schema.load(franchises_raw).data
+
+    def add_to_franchise(self, franchise_machine_name):
+        """ Add user to franchise """
+        self.edap.make_user_member_of_franchise(self.uid, franchise_machine_name)
+
+    def remove_from_franchise(self, franchise_machine_name):
+        """ Remove user from franchise """
+        self.edap.remove_uid_member_of_franchise(self.uid, franchise_machine_name)
+
+    def get_divisions(self):
+        from .serializers import edap_divisions_schema
+        divisions_raw = self.edap.get_divisions(f'memberUid={self.uid}')
+        return edap_divisions_schema.load(divisions_raw).data
+
+    def add_to_division(self, division_machine_name):
+        """ Add user to franchise """
+        self.edap.make_uid_member_of_division(self.uid, division_machine_name)
+
+    def remove_from_division(self, division_machine_name):
+        """ Remove user from division """
+        self.edap.remove_uid_member_of_division(self.uid, division_machine_name)
+
+    def get_teams(self):
+        from .serializers import edap_teams_schema
+        teams_raw = self.edap.get_teams(f'memberUid={self.uid}')
+        return edap_teams_schema.load(teams_raw).data
 
 
 class Franchise:
@@ -100,7 +136,7 @@ class Franchise:
                                             str(NxcPermission.READ.value))
 
 
-class LdapFranchise(Franchise):
+class LdapFranchise(EdapMixin, Franchise):
 
     def __init__(self, fqdn=None, *args, **kwargs):
         self.fqdn = fqdn
@@ -111,10 +147,9 @@ class LdapFranchise(Franchise):
 
     def create(self):
         """ Create franchise with self.machine_name, self.display_name, create corresponding teams """
-        edap = get_edap()
         if LdapFranchise.check_exists_by_display_name(self.display_name):
             raise ConstraintError('Franchise with such display name already exists')
-        edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
+        self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
         # TODO: better move to celery, because takes time
         self.create_teams()
 
@@ -126,12 +161,11 @@ class LdapFranchise(Franchise):
         Should be called when new Franchise is created
         """
         from .serializers import edap_divisions_schema
-        edap = get_edap()
-        divisions = edap_divisions_schema.load(edap.get_divisions()).data
+        divisions = edap_divisions_schema.load(self.edap.get_divisions()).data
         for division in divisions:
-            machine_name = edap.make_team_machine_name(self.machine_name, division.machine_name)
-            display_name = edap.make_team_display_name(self.display_name, division.display_name)
-            edap.create_team(machine_name, display_name)
+            machine_name = self.edap.make_team_machine_name(self.machine_name, division.machine_name)
+            display_name = self.edap.make_team_display_name(self.display_name, division.display_name)
+            self.edap.create_team(machine_name, display_name)
 
     @staticmethod
     def check_exists_by_display_name(display_name):
@@ -169,10 +203,18 @@ class Division:
         self.machine_name = machine_name
         self.display_name = display_name
 
+
+class LdapDivision(EdapMixin, Division):
+    def __init__(self, fqdn=None, *args, **kwargs):
+        self.fqdn = fqdn
+        super(LdapDivision, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f'<LdapDivision(fqdn={self.fqdn}>'
+
     def create(self):
         """ Create division with self.machine_name, self.display_name, create corresponding teams """
-        edap = get_edap()
-        edap.create_division(self.machine_name, display_name=self.display_name)
+        self.edap.create_division(self.machine_name, display_name=self.display_name)
         # TODO: better move to celery, because takes time
         self.create_teams()
 
@@ -184,21 +226,11 @@ class Division:
          Should be called when new Franchise is created
          """
         from .serializers import edap_franchises_schema
-        edap = get_edap()
-        franchises = edap_franchises_schema.load(edap.get_franchises()).data
+        franchises = edap_franchises_schema.load(self.edap.get_franchises()).data
         for franchise in franchises:
-            machine_name = edap.make_team_machine_name(franchise.machine_name, self.machine_name)
-            display_name = edap.make_team_display_name(franchise.display_name, self.display_name)
-            edap.create_team(machine_name, display_name)
-
-
-class LdapDivision(Division):
-    def __init__(self, fqdn=None, *args, **kwargs):
-        self.fqdn = fqdn
-        super(LdapDivision, self).__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return f'<LdapDivision(fqdn={self.fqdn}>'
+            machine_name = self.edap.make_team_machine_name(franchise.machine_name, self.machine_name)
+            display_name = self.edap.make_team_display_name(franchise.display_name, self.display_name)
+            self.edap.create_team(machine_name, display_name)
 
 
 class Team:
@@ -207,7 +239,7 @@ class Team:
         self.display_name = display_name
 
 
-class LdapTeam(Team):
+class LdapTeam(EdapMixin, Team):
 
     EVERYBODY_MACHINE_NAME = 'everybody'
     EVERYBODY_DISPLAY_NAME = 'Everybody'

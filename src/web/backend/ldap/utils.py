@@ -13,6 +13,13 @@ def get_edap():
     return g.edap
 
 
+class EdapMixin:
+
+    @property
+    def edap(self):
+        return get_edap()
+
+
 def get_config_divisions():
     """ Get divisions from config file `ldap.ini` where key is division machine_name, value is display name """
     config = configparser.ConfigParser()

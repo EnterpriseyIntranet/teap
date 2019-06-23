@@ -3,13 +3,29 @@
     <div v-if="user">
       <h2>User: {{ user.uid }}</h2>
 
-        <p>Groups:</p>
-        <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>
+        <p><strong>Franchises:</strong></p>
+        <p>
+          <franchises-select
+            v-model="user.franchises"
+            @select="addToFranchise"
+            @remove="removeFromFranchise">
+          </franchises-select></p>
 
-<!--        <p>Subadmin Groups:</p>-->
-<!--        <multiple-group-search v-model="user.subadmin" @remove="removeFromGroupSubadmins" @select="addToGroupSubadmins"></multiple-group-search>-->
+        <p><strong>Divisions:</strong></p>
+        <p><divisions-select
+          v-model="user.divisions"
+          @select="addToDivision"
+          @remove="removeFromDivision"
+        >
+        </divisions-select></p>
 
-        <p><button v-on:click.prevent="openDeleteModal()">Delete</button></p>
+        <p><strong>Teams:</strong></p>
+        <p><teams-select
+          v-model="user.teams"
+          @select="addToTeam"
+          @remove="removeFromTeam"
+        >
+        </teams-select></p>
 
         <modal name="remove">
             <p>Delete user</p>
@@ -17,19 +33,28 @@
             <button @click="deleteUser()">Delete</button>
             <button @click="$modal.hide('remove')">Cancel</button>
         </modal>
+        <p><button v-on:click.prevent="openDeleteModal()">Delete</button></p>
     </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
-import { NxcUsersService, NxcUserGroupsService, NxcGroupsService } from '@/common/nextcloud-api.service'
+import { NxcUsersService, NxcGroupsService } from '@/common/nextcloud-api.service'
+import { LdapUserFranchisesService, LdapUserDivisionsService, LdapUserTeamsService } from '@/common/ldap-api.service'
+
 import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
+import FranchisesSelect from './franchisesSelect'
+import DivisionsSelect from './divisionsSelect'
+import TeamsSelect from './teamsSelect'
 
 export default {
   name: 'UserDetail',
   props: ['id'],
   components: {
+    TeamsSelect,
+    FranchisesSelect,
+    DivisionsSelect,
     MultipleGroupSearch
   },
   data () {
@@ -57,33 +82,55 @@ export default {
         })
     },
 
-    removeFromGroup (group) {
-      if (!confirm('Are you sure you want to delete user from this group?')) {
-        return
-      }
-      NxcUserGroupsService.delete(this.id, group.fqdn)
-        .then(response => {
-          this.$notifier.success({text: 'successfully deleted'})
-        })
-        .catch((error) => {
-          this.$notifier.error({title: 'Failed to delete', text: error.response.data.message})
-        })
-        .finally(response => {
-          this.getUser()
-        })
-    },
-
-    addToGroup (group) {
-      NxcUserGroupsService.post(this.id, group.fqdn)
+    addToGroup (groupService, groupMachineName) {
+      return groupService.post(this.id, {machineName: groupMachineName})
         .then(response => {
           this.$notifier.success({text: 'successfully added'})
         })
         .catch((error) => {
           this.$notifier.error({title: 'Failed to add', text: error.response.data.message})
         })
-        .finally(response => {
+    },
+
+    removeFromGroup (groupService, groupMachineName) {
+      if (!confirm('Are you sure you want to delete user from this group?')) {
+        return
+      }
+      return groupService.delete(this.id, {machineName: groupMachineName})
+        .then(response => {
+          this.$notifier.success({text: 'successfully deleted'})
+        })
+        .catch((error) => {
+          this.$notifier.error({title: 'Failed to delete', text: error.response.data.message})
+        })
+    },
+
+    addToFranchise (group) {
+      this.addToGroup(LdapUserFranchisesService, group.machineName)
+    },
+
+    removeFromFranchise (group) {
+      console.log('remove From franchise ', group)
+      this.removeFromGroup(LdapUserFranchisesService, group.machineName)
+    },
+
+    addToDivision (group) {
+      this.addToGroup(LdapUserDivisionsService, group.machineName)
+    },
+
+    removeFromDivision (group) {
+      this.removeFromGroup(LdapUserDivisionsService, group.machineName)
+    },
+
+    addToTeam (group) {
+      this.addToGroup(LdapUserTeamsService, group.machineName)
+        .then(() => {
           this.getUser()
         })
+    },
+
+    removeFromTeam (group) {
+      this.removeFromGroup(LdapUserTeamsService, group.machineName)
     },
 
     addToGroupSubadmins (group) {
