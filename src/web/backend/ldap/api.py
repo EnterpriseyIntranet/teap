@@ -131,7 +131,7 @@ class UserDivisionsViewSet(EdapMixin, MethodView):
     def delete(self, uid):
         user = edap_user_schema.load(self.edap.get_user(uid)).data
         machine_name = request.json.get('machineName')
-        user.remove_from_franchise(machine_name)
+        user.remove_from_division(machine_name)
         return jsonify({'message': 'success'}), 202
 
 

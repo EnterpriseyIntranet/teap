@@ -42,6 +42,7 @@
 import axios from 'axios'
 import { NxcUsersService, NxcGroupsService } from '@/common/nextcloud-api.service'
 import { LdapUserFranchisesService, LdapUserDivisionsService, LdapUserTeamsService } from '@/common/ldap-api.service'
+import { RocketUserChannelsService } from '@/common/rocketchat-api.service'
 
 import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
 import FranchisesSelect from './franchisesSelect'
@@ -105,27 +106,65 @@ export default {
         })
     },
 
+    addToRocketGroup (groupId) {
+      RocketUserChannelsService.post(this.user.uid, groupId)
+        .then(response => {
+          this.$notifier.success({title: 'Successfully added to rocket group'})
+        })
+        .catch(error => {
+          this.$notifier.error({title: 'Failed to add to rocket group', text: error.response.data.message})
+        })
+    },
+
+    deleteFromRocketGroup (groupId) {
+      RocketUserChannelsService.delete(this.user.uid, groupId)
+        .then(response => {
+          this.$notifier.success({title: 'Deleted from corresponding rocket group'})
+        })
+        .catch(error => {
+          this.$notifier.error({title: 'Failed to delete from corresponding rocket group',
+            text: error.response.data.message})
+        })
+    },
+
     addToFranchise (group) {
       this.addToGroup(LdapUserFranchisesService, group.machineName)
+        .then(() => {
+          this.addToRocketGroup(`Franchise-${group.displayName}`)
+        })
     },
 
     removeFromFranchise (group) {
-      console.log('remove From franchise ', group)
       this.removeFromGroup(LdapUserFranchisesService, group.machineName)
+        .then(() => {
+          this.deleteFromRocketGroup(`Franchise-${group.displayName}`)
+        })
     },
 
     addToDivision (group) {
       this.addToGroup(LdapUserDivisionsService, group.machineName)
+        .then(() => {
+          this.addToRocketGroup(`Division-${group.displayName}`)
+        })
     },
 
     removeFromDivision (group) {
       this.removeFromGroup(LdapUserDivisionsService, group.machineName)
+        .then(() => {
+          this.deleteFromRocketGroup(`Division-${group.displayName}`)
+        })
     },
 
     addToTeam (group) {
       this.addToGroup(LdapUserTeamsService, group.machineName)
         .then(() => {
           this.getUser()
+          RocketUserChannelsService.addToTeamChats(this.user.uid, group.machineName)
+            .then(() => {
+              this.$notifier.success({title: 'Successfully added to team chats'})
+            }, (error) => {
+              this.$notifier.error({title: 'Failed to add to team chats', text: error.response.data.message})
+            })
         })
     },
 

@@ -15,3 +15,34 @@ def get_rocket():
             g.rocket = None
             g.rocket_exception = e
     return g.rocket
+
+
+class RocketMixin:
+
+    @property
+    def rocket(self):
+        return get_rocket()
+
+
+def get_channel_by_name(channel_name):
+    """ Get rocket channel json object by it's name """
+    rocket = get_rocket()
+    res = rocket.channels_list(query='{{"name": {{"$eq": "{channel_name}"}}}}'.format(channel_name=channel_name))
+    if res.status_code != 200:
+        return None
+    channels = res.json()['channels']
+    if not channels:
+        return None
+    return channels[0]
+
+
+def get_user_by_username(username):
+    """ Get rocket user json object by it's username """
+    rocket = get_rocket()
+    res = rocket.users_list(query='{{"username":{{"$eq": "{username}"}}}}'.format(username=username))
+    if res.status_code != 200:
+        return None
+    users = res.json()['users']
+    if not users:
+        return None
+    return users[0]

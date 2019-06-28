@@ -106,6 +106,10 @@ class Franchise:
         self.machine_name = machine_name
         self.display_name = display_name
 
+    @property
+    def chat_name(self):
+        return f'Franchise-{self.display_name}'
+
     @staticmethod
     def create_folder(folder_name):
         """
@@ -203,6 +207,10 @@ class Division:
         self.machine_name = machine_name
         self.display_name = display_name
 
+    @property
+    def chat_name(self):
+        return f'Division-{self.display_name}'
+
 
 class LdapDivision(EdapMixin, Division):
     def __init__(self, fqdn=None, *args, **kwargs):
@@ -263,3 +271,7 @@ class LdapTeam(EdapMixin, Team):
             everybody_team = edap.get_team(LdapTeam.EVERYBODY_MACHINE_NAME)
         return edap_team_schema.load(everybody_team).data
 
+    def get_team_components(self):
+        from .serializers import edap_franchise_schema, edap_division_schema
+        franchise_json, division_json = self.edap.get_team_component_units(self.machine_name)
+        return edap_franchise_schema.load(franchise_json).data, edap_division_schema.load(division_json).data
