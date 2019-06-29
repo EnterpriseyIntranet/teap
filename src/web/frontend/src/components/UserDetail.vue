@@ -93,13 +93,14 @@ export default {
         })
     },
 
-    removeFromGroup (groupService, groupMachineName) {
+    removeFromGroup (groupService, groupMachineName, groupName) {
       if (!confirm('Are you sure you want to delete user from this group?')) {
         return
       }
       return groupService.delete(this.id, {machineName: groupMachineName})
         .then(response => {
           this.$notifier.success({text: 'successfully deleted'})
+          this.user[groupName] = this.user[groupName].filter((each) => (each.machineName !== groupMachineName))
         })
         .catch((error) => {
           this.$notifier.error({title: 'Failed to delete', text: error.response.data.message})
@@ -134,8 +135,8 @@ export default {
         })
     },
 
-    removeFromFranchise (group) {
-      this.removeFromGroup(LdapUserFranchisesService, group.machineName)
+    removeFromFranchise (group, callback) {
+      this.removeFromGroup(LdapUserFranchisesService, group.machineName, 'franchises')
         .then(() => {
           this.deleteFromRocketGroup(`Franchise-${group.displayName}`)
         })
@@ -149,7 +150,7 @@ export default {
     },
 
     removeFromDivision (group) {
-      this.removeFromGroup(LdapUserDivisionsService, group.machineName)
+      this.removeFromGroup(LdapUserDivisionsService, group.machineName, 'divisions')
         .then(() => {
           this.deleteFromRocketGroup(`Division-${group.displayName}`)
         })
@@ -169,7 +170,7 @@ export default {
     },
 
     removeFromTeam (group) {
-      this.removeFromGroup(LdapUserTeamsService, group.machineName)
+      this.removeFromGroup(LdapUserTeamsService, group.machineName, 'teams')
     },
 
     addToGroupSubadmins (group) {
