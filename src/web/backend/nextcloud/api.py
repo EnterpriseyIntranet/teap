@@ -4,10 +4,11 @@ from flask.views import MethodView
 from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 
 from backend.utils import EncoderWithBytes
-from backend.ldap.api import EdapMixin
+from backend.ldap.utils import EdapMixin
 
 from backend.ldap.serializers import edap_users_schema, edap_user_schema
-from backend.ldap.api_serializers import api_user_schema, api_users_schema
+from backend.ldap.api_serializers import api_user_schema, api_users_schema, api_franchises_schema, \
+    api_divisions_schema, api_teams_schema
 from backend.ldap.models import LdapUser
 from .utils import create_group_folder, get_nextcloud
 
@@ -66,17 +67,20 @@ class UserRetrieveViewSet(NextCloudMixin,
     def get(self, username):
         """ List users """
         try:
-            res = edap_user_schema.load(self.edap.get_user(username)).data
+            user = edap_user_schema.load(self.edap.get_user(username)).data
         except MultipleObjectsFound:
             return jsonify({'message': 'More than 1 user found'}), 409
         except ObjectDoesNotExist:
             return jsonify({'message': 'User does not exist'}), 404
         user_groups = self.edap.get_user_groups(username)
-        res = {
-            **api_user_schema.dump(res).data,
-            "groups": [group for group in user_groups]
+        user = {
+            **api_user_schema.dump(user).data,
+            "groups": [group for group in user_groups],
+            "franchises": api_franchises_schema.dump(user.get_franchises()).data,
+            "divisions": api_divisions_schema.dump(user.get_divisions()).data,
+            "teams": api_teams_schema.dump(user.get_teams()).data
         }
-        return jsonify(res)
+        return jsonify(user)
 
     def delete(self, username):
         """ Delete user """

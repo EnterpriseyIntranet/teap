@@ -3,13 +3,29 @@
     <div v-if="user">
       <h2>User: {{ user.uid }}</h2>
 
-        <p>Groups:</p>
-        <multiple-group-search v-model="user.groups" @remove="removeFromGroup" @select="addToGroup"></multiple-group-search>
+        <p><strong>Franchises:</strong></p>
+        <p>
+          <franchises-select
+            v-model="user.franchises"
+            @select="addToFranchise"
+            @remove="removeFromFranchise">
+          </franchises-select></p>
 
-<!--        <p>Subadmin Groups:</p>-->
-<!--        <multiple-group-search v-model="user.subadmin" @remove="removeFromGroupSubadmins" @select="addToGroupSubadmins"></multiple-group-search>-->
+        <p><strong>Divisions:</strong></p>
+        <p><divisions-select
+          v-model="user.divisions"
+          @select="addToDivision"
+          @remove="removeFromDivision"
+        >
+        </divisions-select></p>
 
-        <p><button v-on:click.prevent="openDeleteModal()">Delete</button></p>
+        <p><strong>Teams:</strong></p>
+        <p><teams-select
+          v-model="user.teams"
+          @select="addToTeam"
+          @remove="removeFromTeam"
+        >
+        </teams-select></p>
 
         <modal name="remove">
             <p>Delete user</p>
@@ -17,19 +33,29 @@
             <button @click="deleteUser()">Delete</button>
             <button @click="$modal.hide('remove')">Cancel</button>
         </modal>
+        <p><button v-on:click.prevent="openDeleteModal()">Delete</button></p>
     </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
-import { NxcUsersService, NxcUserGroupsService, NxcGroupsService } from '@/common/nextcloud-api.service'
+import { NxcUsersService, NxcGroupsService } from '@/common/nextcloud-api.service'
+import { LdapUserFranchisesService, LdapUserDivisionsService, LdapUserTeamsService } from '@/common/ldap-api.service'
+import { RocketUserChannelsService } from '@/common/rocketchat-api.service'
+
 import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
+import FranchisesSelect from './franchisesSelect'
+import DivisionsSelect from './divisionsSelect'
+import TeamsSelect from './teamsSelect'
 
 export default {
   name: 'UserDetail',
   props: ['id'],
   components: {
+    TeamsSelect,
+    FranchisesSelect,
+    DivisionsSelect,
     MultipleGroupSearch
   },
   data () {
@@ -57,33 +83,94 @@ export default {
         })
     },
 
-    removeFromGroup (group) {
-      if (!confirm('Are you sure you want to delete user from this group?')) {
-        return
-      }
-      NxcUserGroupsService.delete(this.id, group.fqdn)
-        .then(response => {
-          this.$notifier.success({text: 'successfully deleted'})
-        })
-        .catch((error) => {
-          this.$notifier.error({title: 'Failed to delete', text: error.response.data.message})
-        })
-        .finally(response => {
-          this.getUser()
-        })
-    },
-
-    addToGroup (group) {
-      NxcUserGroupsService.post(this.id, group.fqdn)
+    addToGroup (groupService, groupMachineName) {
+      return groupService.post(this.id, {machineName: groupMachineName})
         .then(response => {
           this.$notifier.success({text: 'successfully added'})
         })
         .catch((error) => {
           this.$notifier.error({title: 'Failed to add', text: error.response.data.message})
         })
-        .finally(response => {
-          this.getUser()
+    },
+
+    removeFromGroup (groupService, groupMachineName, groupName) {
+      if (!confirm('Are you sure you want to delete user from this group?')) {
+        return
+      }
+      return groupService.delete(this.id, {machineName: groupMachineName})
+        .then(response => {
+          this.$notifier.success({text: 'successfully deleted'})
+          this.user[groupName] = this.user[groupName].filter((each) => (each.machineName !== groupMachineName))
         })
+        .catch((error) => {
+          this.$notifier.error({title: 'Failed to delete', text: error.response.data.message})
+        })
+    },
+
+    addToRocketGroup (groupId) {
+      RocketUserChannelsService.post(this.user.uid, groupId)
+        .then(response => {
+          this.$notifier.success({title: 'Successfully added to rocket group'})
+        })
+        .catch(error => {
+          this.$notifier.error({title: 'Failed to add to rocket group', text: error.response.data.message})
+        })
+    },
+
+    deleteFromRocketGroup (groupId) {
+      RocketUserChannelsService.delete(this.user.uid, groupId)
+        .then(response => {
+          this.$notifier.success({title: 'Deleted from corresponding rocket group'})
+        })
+        .catch(error => {
+          this.$notifier.error({title: 'Failed to delete from corresponding rocket group',
+            text: error.response.data.message})
+        })
+    },
+
+    addToFranchise (group) {
+      this.addToGroup(LdapUserFranchisesService, group.machineName)
+        .then(() => {
+          this.addToRocketGroup(`Franchise-${group.displayName}`)
+        })
+    },
+
+    removeFromFranchise (group, callback) {
+      this.removeFromGroup(LdapUserFranchisesService, group.machineName, 'franchises')
+        .then(() => {
+          this.deleteFromRocketGroup(`Franchise-${group.displayName}`)
+        })
+    },
+
+    addToDivision (group) {
+      this.addToGroup(LdapUserDivisionsService, group.machineName)
+        .then(() => {
+          this.addToRocketGroup(`Division-${group.displayName}`)
+        })
+    },
+
+    removeFromDivision (group) {
+      this.removeFromGroup(LdapUserDivisionsService, group.machineName, 'divisions')
+        .then(() => {
+          this.deleteFromRocketGroup(`Division-${group.displayName}`)
+        })
+    },
+
+    addToTeam (group) {
+      this.addToGroup(LdapUserTeamsService, group.machineName)
+        .then(() => {
+          this.getUser()
+          RocketUserChannelsService.addToTeamChats(this.user.uid, group.machineName)
+            .then(() => {
+              this.$notifier.success({title: 'Successfully added to team chats'})
+            }, (error) => {
+              this.$notifier.error({title: 'Failed to add to team chats', text: error.response.data.message})
+            })
+        })
+    },
+
+    removeFromTeam (group) {
+      this.removeFromGroup(LdapUserTeamsService, group.machineName, 'teams')
     },
 
     addToGroupSubadmins (group) {

@@ -28,7 +28,7 @@
 <script>
 import axios from 'axios'
 import _ from 'lodash'
-import { LdapDivisionsService } from '../common/ldap-api.service.js'
+import { LdapConfigDivisionsService, LdapDivisionService } from '../common/ldap-api.service.js'
 import { GroupFolderService } from '../common/nextcloud-api.service'
 import { RocketChannelsService } from '../common/rocketchat-api.service'
 
@@ -62,12 +62,12 @@ export default {
 
   methods: {
     getDivisions () {
-      LdapDivisionsService.get().then((res) => {
+      LdapConfigDivisionsService.get().then((res) => {
         this.divisions = res.data.divisions
       })
     },
     createDivision (machineName, data) {
-      LdapDivisionsService.post({machine_name: machineName}).then(res => {
+      LdapConfigDivisionsService.post({machine_name: machineName}).then(res => {
         this.getDivisions()
         this.$notifier.success({text: 'Division created'})
         let groupFolderReq = GroupFolderService.post({group_name: machineName, group_type: 'divisions'})
@@ -93,7 +93,7 @@ export default {
     },
 
     deleteDivision (divisionName) {
-      LdapDivisionsService.delete(divisionName).then(res => {
+      LdapDivisionService.delete(divisionName).then(res => {
         this.$notifier.success({text: 'Division successfully deleted'})
         this.getDivisions()
       }).catch(error => {
