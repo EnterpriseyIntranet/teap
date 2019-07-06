@@ -8,6 +8,7 @@ const routerOptions = [
   {name: 'group', path: '/groups/:id', component: 'Group', props: true},
   {name: 'divisions', path: '/divisions', component: 'Divisions'},
   {name: 'franchises', path: '/franchises', component: 'Franchises'},
+  {name: 'teams', path: '/teams', component: 'Teams'},
   {name: 'notFound', path: '*', component: 'NotFound'}
 ]
 

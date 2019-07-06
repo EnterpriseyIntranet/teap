@@ -49,6 +49,10 @@ export const LdapFranchiseFolderService = {
 export const LdapTeamsService = {
   get (params) {
     return ApiService.get(`${BASE_URL}teams`, '', params)
+  },
+
+  delete (machineName) {
+    return ApiService.delete(`${BASE_URL}teams/${machineName}`)
   }
 }
 
