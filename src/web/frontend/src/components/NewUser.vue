@@ -66,7 +66,7 @@ export default {
       NxcUsersService.post(data)
         .then(response => {
           let rocketData = response.data.rocket
-          if (!rocketData.success){
+          if (!rocketData.success) {
             this.$notifier.error({title: 'Error creating rocketchat user', text: rocketData.error})
           }
           this.$router.push({name: 'user', params: {id: this.user.uid}})

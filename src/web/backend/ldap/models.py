@@ -164,6 +164,11 @@ class Franchise:
                                             LdapTeam.EVERYBODY_MACHINE_NAME,
                                             str(NxcPermission.READ.value))
 
+    def create_channel(self):
+        channel_name = f"Franchise-{self.display_name}".replace(' ', '-')
+        channel_res = rocket_service.create_channel(channel_name)
+        return channel_res
+
 
 class LdapFranchise(EdapMixin, Franchise):
 
@@ -181,6 +186,34 @@ class LdapFranchise(EdapMixin, Franchise):
         self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
         # TODO: better move to celery, because takes time
         self.create_teams()
+
+        # create group folder
+        try:
+            folder_success = self.create_folder(self.display_name)
+            folder_error = None
+        except Exception as folder_exception:
+            folder_success = False
+            folder_error = str(folder_exception)
+
+        # create rocket channel
+        try:
+            channel_res = self.create_channel()
+            channel_success = channel_res.status_code == 200
+            channel_error = None
+        except Exception as channel_exception:
+            channel_success = False
+            channel_error = str(channel_exception)
+
+        return {
+            'rocket': {
+                'success': channel_success,
+                'error': channel_error
+            },
+            'folder': {
+                'success': folder_success,
+                'error': folder_error
+            }
+        }
 
     def create_teams(self):
         """
