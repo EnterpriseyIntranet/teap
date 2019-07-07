@@ -37,8 +37,8 @@ class ConfigDivisionsListViewSet(EdapMixin, MethodView):
             return jsonify({"message": "Division doesn't exist in config file"}), 400
         div_display_name = config_divisions[div_machine_name]
         division = LdapDivision(machine_name=div_machine_name, display_name=div_display_name)
-        division.create()
-        return jsonify({'message': 'Success'})
+        res = division.create()
+        return jsonify(res)
 
 
 class DivisionsViewSet(EdapMixin, MethodView):

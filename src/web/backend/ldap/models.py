@@ -3,7 +3,7 @@ from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap
-from backend.nextcloud.utils import get_nextcloud, get_group_folder
+from backend.nextcloud.utils import get_nextcloud, get_group_folder, create_group_folder
 from backend.rocket_chat.utils import rocket_service
 
 # TODO: separate layer with edap from data models
@@ -269,6 +269,14 @@ class Division:
     def chat_name(self):
         return f'Division-{self.display_name}'
 
+    def create_channel(self):
+        channel_name = self.chat_name
+        channel_res = rocket_service.create_channel(channel_name)
+        return channel_res
+
+    def create_folder(self):
+        return create_group_folder(self.display_name, 'Divisions')
+
 
 class LdapDivision(EdapMixin, Division):
     def __init__(self, fqdn=None, *args, **kwargs):
@@ -283,6 +291,34 @@ class LdapDivision(EdapMixin, Division):
         self.edap.create_division(self.machine_name, display_name=self.display_name)
         # TODO: better move to celery, because takes time
         self.create_teams()
+
+        # create group folder
+        try:
+            folder_success = self.create_folder()
+            folder_error = None
+        except Exception as folder_exception:
+            folder_success = False
+            folder_error = str(folder_exception)
+
+        # create rocket channel
+        try:
+            channel_res = self.create_channel()
+            channel_success = channel_res.status_code == 200
+            channel_error = None
+        except Exception as channel_exception:
+            channel_success = False
+            channel_error = str(channel_exception)
+
+        return {
+            'rocket': {
+                'success': channel_success,
+                'error': channel_error
+            },
+            'folder': {
+                'success': folder_success,
+                'error': folder_error
+            }
+        }
 
     def create_teams(self):
         """

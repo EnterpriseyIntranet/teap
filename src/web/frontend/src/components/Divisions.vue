@@ -26,11 +26,8 @@
 </template>
 
 <script>
-import axios from 'axios'
 import _ from 'lodash'
 import { LdapConfigDivisionsService, LdapDivisionService } from '../common/ldap-api.service.js'
-import { GroupFolderService } from '../common/nextcloud-api.service'
-import { RocketChannelsService } from '../common/rocketchat-api.service'
 
 export default {
   data () {
@@ -67,29 +64,24 @@ export default {
       })
     },
     createDivision (machineName, data) {
-      LdapConfigDivisionsService.post({machine_name: machineName}).then(res => {
-        this.getDivisions()
-        this.$notifier.success({text: 'Division created'})
-        let groupFolderReq = GroupFolderService.post({group_name: machineName, group_type: 'divisions'})
-          .catch(error => {
-            this.$notifier.error({title: 'Error creating group folder for division', text: error.response.data.message})
-          })
-        let rocketChannelReq = RocketChannelsService.post({channel_name: `Division-${data.config_display_name}`})
-          .catch(error => {
-            this.$notifier.error({title: 'Error creating rocket chat channel for division', text: error.response.data.error})
-          })
-        return axios.all([groupFolderReq, rocketChannelReq])
-      }, (error) => {
-        this.$notifier.error({title: 'Error creating division', text: error.response.data.message})
-      }).then(axios.spread((folderRes, rocketChannelRes) => {
-        if (folderRes) {
-          this.$notifier.success({text: 'Group folder created'})
-        }
+      LdapConfigDivisionsService.post({machine_name: machineName})
+        .then(response => {
+          this.getDivisions()
+          this.$notifier.success({text: 'Division created'})
 
-        if (rocketChannelRes) {
-          this.$notifier.success({text: 'Rocket channel created'})
-        }
-      }))
+          let channelRes = response.data.rocket
+          let folderRes = response.data.folder
+
+          if (!channelRes.success) {
+            this.$notifier.error({title: 'Error creating rocket chat channel for division', text: channelRes.error})
+          }
+
+          if (!folderRes.success) {
+            this.$notifier.error({title: 'Error creating group folder for division', text: folderRes.error})
+          }
+        }, (error) => {
+          this.$notifier.error({title: 'Error creating division', text: error.response.data.message})
+        })
     },
 
     deleteDivision (divisionName) {
