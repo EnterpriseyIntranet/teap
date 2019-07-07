@@ -4,12 +4,13 @@ from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap
 from backend.nextcloud.utils import get_nextcloud, get_group_folder
+from backend.rocket_chat.utils import rocket_service
 
 # TODO: separate layer with edap from data models
 
 
 class User:
-    def __init__(self, uid, given_name=None, mail=None, surname=None, groups=None, franchises=None, divisions=None,
+    def __init__(self, uid=None, given_name=None, mail=None, surname=None, groups=None, franchises=None, divisions=None,
                  teams=None):
         self.uid = uid
         self.given_name = given_name
@@ -39,12 +40,36 @@ class LdapUser(EdapMixin, User):
     def create(self, password):
         self.edap.add_user(self.uid, self.given_name, self.surname, password)
 
-        for group in self.groups:
-            self.edap.make_uid_member_of(self.uid, group)
-
         # add user to 'Everybody' team
         everybody_team = LdapTeam.get_everybody_team()
         self.edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
+
+        # create rocket chat account
+        try:
+            rocket_chat_success, rocket_data = self.create_chat_account(password)
+        except Exception as e:
+            rocket_data = {'error': str(e)}
+            rocket_chat_success = False
+        return {
+            'rocket': {
+                'success': rocket_chat_success,
+                **rocket_data
+            }
+        }
+
+    def create_chat_account(self, password):
+        """
+        Create chat account for user
+        Args:
+            password (str):
+
+        Returns (tuple):
+            (success (bool), data (dict))
+        """
+        rocket_res = rocket_service.create_user(self.uid, password, self.mail, self.given_name)
+        rocket_data = rocket_res.json()
+        rocket_chat_success = rocket_res.status_code == 200 and rocket_res.json().get('success', True)
+        return rocket_chat_success, rocket_data
 
     def get_teams(self):
         """ Get teams where user is a member """
@@ -259,6 +284,11 @@ class LdapTeam(EdapMixin, Team):
     def __repr__(self):
         return f'<LdapTeam(fqdn={self.fqdn}>'
 
+    def get_team_components(self):
+        from .serializers import edap_franchise_schema, edap_division_schema
+        franchise_json, division_json = self.edap.get_team_component_units(self.machine_name)
+        return edap_franchise_schema.load(franchise_json).data, edap_division_schema.load(division_json).data
+
     @staticmethod
     def get_everybody_team():
         """ Get or create and return 'Everybody' Team """
@@ -270,8 +300,3 @@ class LdapTeam(EdapMixin, Team):
             edap.create_team(LdapTeam.EVERYBODY_MACHINE_NAME, LdapTeam.EVERYBODY_DISPLAY_NAME)
             everybody_team = edap.get_team(LdapTeam.EVERYBODY_MACHINE_NAME)
         return edap_team_schema.load(everybody_team).data
-
-    def get_team_components(self):
-        from .serializers import edap_franchise_schema, edap_division_schema
-        franchise_json, division_json = self.edap.get_team_component_units(self.machine_name)
-        return edap_franchise_schema.load(franchise_json).data, edap_division_schema.load(division_json).data

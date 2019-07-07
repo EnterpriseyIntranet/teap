@@ -43,21 +43,20 @@ class UserListViewSet(NextCloudMixin, EdapMixin, MethodView):
 
     def post(self):
         """ Create user """
-        username = request.json.get('username')
+        username = request.json.get('uid')
         password = request.json.get('password')
         name = request.json.get('name')
         surname = request.json.get('surname')
-        groups = request.json.get('groups', [])
         if not all([username, password, name, surname]):
             return jsonify({'message': 'username, password, name, surname fields are required'}), 400
 
+        user = api_user_schema.load(request.json).data
         try:
-            user = LdapUser(uid=username, given_name=name, surname=surname, groups=groups)
-            user.create(password=password)
+            res = user.create(password=password)
         except ConstraintError as e:
-            return jsonify({'message': "Failed to create user. {}".format(e)})
+            return jsonify({'message': "Failed to create user. {}".format(e)}), 400
 
-        return jsonify({'status': True})
+        return jsonify(res)
 
 
 class UserRetrieveViewSet(NextCloudMixin,

@@ -3,10 +3,9 @@ from flask.views import MethodView
 
 from edap import ObjectDoesNotExist
 
-from backend.ldap.serializers import edap_team_schema
 from backend.ldap.utils import EdapMixin
 
-from .utils import get_rocket, RocketMixin, get_channel_by_name, get_user_by_username
+from .utils import get_rocket, RocketMixin, rocket_service
 
 blueprint = Blueprint('rocket_chat_api', __name__, url_prefix='/api/rocket')
 
@@ -25,7 +24,6 @@ blueprint.before_request(check_rocket_authorized)
 
 @blueprint.route('users', methods=["POST"])
 def create_user():
-    rocket = get_rocket()
     username = request.json.get('username')
     password = request.json.get('password')
     email = request.json.get('email')
@@ -33,7 +31,7 @@ def create_user():
     if not all([username, password, email, name]):
         return jsonify({"message": "username, password, email, name are required fields"}), 400
 
-    res = rocket.users_create(email, name, password, username, requirePasswordChange=True)
+    res = rocket_service.create_chat_user(username, password, email, name)
     data = res.json()
 
     if res.status_code == 200 and data.get('success', True):
@@ -44,10 +42,9 @@ def create_user():
 
 @blueprint.route('channels', methods=["POST"])
 def create_channel():
-    rocket = get_rocket()
     channel_name = request.json.get('channel_name')
     channel_name = channel_name.replace(' ', '-')  # TODO: add proper name normalization
-    res = rocket.channels_create(channel_name)
+    res = rocket_service.create_chat_channel(channel_name)
     res_data = res.json()
     return jsonify(res_data), res.status_code
 
@@ -57,8 +54,8 @@ class UserRocketChannels(RocketMixin, MethodView):
     def post(self, user_id):
         channel = request.json.get('channel')
 
-        rocket_user = get_user_by_username(user_id)
-        rocket_channel = get_channel_by_name(channel)
+        rocket_user = rocket_service.get_user_by_username(user_id)
+        rocket_channel = rocket_service.get_channel_by_name(channel)
 
         if not all([rocket_user, rocket_channel]):
             return jsonify({'message': 'Rocket channel or user not found'}), 404
@@ -67,8 +64,8 @@ class UserRocketChannels(RocketMixin, MethodView):
         return jsonify(res.json()), res.status_code
 
     def delete(self, user_id, channel):
-        rocket_user = get_user_by_username(user_id)
-        rocket_channel = get_channel_by_name(channel)
+        rocket_user = rocket_service.get_user_by_username(user_id)
+        rocket_channel = rocket_service.get_channel_by_name(channel)
 
         if not all([rocket_user, rocket_channel]):
             return jsonify({'message': 'Rocket channel or user not found'}), 404
@@ -81,16 +78,17 @@ class UserTeamsChatsViewSet(RocketMixin, EdapMixin, MethodView):
 
     def post(self, uid, team_machine_name):
         """ Add user to team chats """
+        from backend.ldap.serializers import edap_team_schema
         team = edap_team_schema.load(self.edap.get_team(team_machine_name)).data
         try:
             franchise, division = team.get_team_components()
         except ObjectDoesNotExist:
             return jsonify({'message': 'Team corresponding franchise or division are not found'}), 404
 
-        user = get_user_by_username(uid)
+        user = rocket_service.get_user_by_username(uid)
 
-        franchise_channel = get_channel_by_name(franchise.chat_name)
-        division_channel = get_channel_by_name(division.chat_name)
+        franchise_channel = rocket_service.get_channel_by_name(franchise.chat_name)
+        division_channel = rocket_service.get_channel_by_name(division.chat_name)
 
         if not all([user, franchise_channel, division_channel]):
             return jsonify({'message': 'Corresponding franchise or division channels not found'}), 400
