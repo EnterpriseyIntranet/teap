@@ -103,6 +103,14 @@ class TeamsViewSet(EdapMixin, MethodView):
         return jsonify(api_teams_schema.dump(ldap_teams).data)
 
 
+class TeamViewSet(EdapMixin, MethodView):
+
+    def delete(self, machine_name):
+        """ Delete single team """
+        self.edap.delete_team(machine_name)
+        return jsonify({'message': 'success'}), 202
+
+
 class UserFranchisesViewSet(EdapMixin, MethodView):
 
     def post(self, uid):
@@ -172,6 +180,9 @@ blueprint.add_url_rule('franchises/<franchise_machine_name>/folders', view_func=
 
 teams_view = TeamsViewSet.as_view('teams_api')
 blueprint.add_url_rule('teams', view_func=teams_view, methods=['GET'])
+
+team_view = TeamViewSet.as_view('team_api')
+blueprint.add_url_rule('teams/<machine_name>', view_func=team_view, methods=['DELETE'])
 
 user_franchises_view = UserFranchisesViewSet.as_view('user_franchises_api')
 blueprint.add_url_rule('user/<uid>/franchises', view_func=user_franchises_view, methods=['POST', 'DELETE'])
