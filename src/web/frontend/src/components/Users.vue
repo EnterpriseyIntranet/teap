@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { NxcUsersService } from '../common/nextcloud-api.service.js'
+import { LdapUsersService } from '../common/ldap-api.service.js'
 
 export default {
   data () {
@@ -25,7 +25,7 @@ export default {
   },
   methods: {
     getUsers () {
-      NxcUsersService.get()
+      LdapUsersService.get()
         .then(response => {
           this.users = response.data
         }
@@ -38,7 +38,7 @@ export default {
       if (!confirm('Are you sure you want to delete this user?')) {
         return
       }
-      NxcUsersService.delete(user)
+      LdapUsersService.delete(user)
         .then(response => {
           console.log(response.data)
           if (response.data.status) {
