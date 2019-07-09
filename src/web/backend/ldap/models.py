@@ -37,14 +37,18 @@ class LdapUser(EdapMixin, User):
     def __repr__(self):
         return f'<LdapUser(fqdn={self.fqdn}, uid={self.uid})>'
 
-    def create(self, password):
-        self.edap.add_user(self.uid, self.given_name, self.surname, password)
+    def add_to_edap(self, password):
+        """ Create user entity in ldap """
+        return self.edap.add_user(self.uid, self.given_name, self.surname, password)
 
-        # add user to 'Everybody' team
+    def add_to_everybody_team(self):
+        """ Add user to everybody team in edap """
         everybody_team = LdapTeam.get_everybody_team()
-        self.edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
+        return self.edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
 
-        # create rocket chat account
+    def create(self, password):
+        self.add_to_edap(password)
+        self.add_to_everybody_team()
         try:
             rocket_chat_success, rocket_data = self.create_chat_account(password)
         except Exception as e:
@@ -181,12 +185,8 @@ class LdapFranchise(EdapMixin, Franchise):
 
     def create(self):
         """ Create franchise with self.machine_name, self.display_name, create corresponding teams """
-        if LdapFranchise.check_exists_by_display_name(self.display_name):
-            raise ConstraintError('Franchise with such display name already exists')
-        self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
-        # TODO: better move to celery, because takes time
+        self.add_to_edap()
         self.create_teams()
-
         # create group folder
         try:
             folder_success = self.create_folder(self.display_name)
@@ -214,6 +214,12 @@ class LdapFranchise(EdapMixin, Franchise):
                 'error': folder_error
             }
         }
+
+    def add_to_edap(self):
+        """ Create franchise entity in ldap """
+        if LdapFranchise.check_exists_by_display_name(self.display_name):
+            raise ConstraintError('Franchise with such display name already exists')
+        return self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
 
     def create_teams(self):
         """
@@ -286,12 +292,14 @@ class LdapDivision(EdapMixin, Division):
     def __repr__(self):
         return f'<LdapDivision(fqdn={self.fqdn}>'
 
+    def add_to_edap(self):
+        """ Add division entity to edap """
+        return self.edap.create_division(self.machine_name, display_name=self.display_name)
+
     def create(self):
         """ Create division with self.machine_name, self.display_name, create corresponding teams """
-        self.edap.create_division(self.machine_name, display_name=self.display_name)
-        # TODO: better move to celery, because takes time
+        self.add_to_edap()
         self.create_teams()
-
         # create group folder
         try:
             folder_success = self.create_folder()
