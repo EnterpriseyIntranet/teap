@@ -49,16 +49,9 @@ class LdapUser(EdapMixin, User):
     def create(self, password):
         self.add_to_edap(password)
         self.add_to_everybody_team()
-        try:
-            rocket_chat_success, rocket_data = self.create_chat_account(password)
-        except Exception as e:
-            rocket_data = {'error': str(e)}
-            rocket_chat_success = False
+        rocket_data = self.create_chat_account(password)
         return {
-            'rocket': {
-                'success': rocket_chat_success,
-                **rocket_data
-            }
+            'rocket': rocket_data
         }
 
     def create_chat_account(self, password):
@@ -71,9 +64,7 @@ class LdapUser(EdapMixin, User):
             (success (bool), data (dict))
         """
         rocket_res = rocket_service.create_user(self.uid, password, self.mail, self.given_name)
-        rocket_data = rocket_res.json()
-        rocket_chat_success = rocket_res.status_code == 200 and rocket_res.json().get('success', True)
-        return rocket_chat_success, rocket_data
+        return rocket_res.json()
 
     def get_teams(self):
         """ Get teams where user is a member """
@@ -137,7 +128,7 @@ class Franchise:
 
     @property
     def chat_name(self):
-        return f'Franchise-{self.display_name}'
+        return f'Franchise-{self.display_name}'.replace(' ', '-')
 
     @staticmethod
     def create_folder(folder_name):
@@ -169,9 +160,12 @@ class Franchise:
                                             str(NxcPermission.READ.value))
 
     def create_channel(self):
-        channel_name = f"Franchise-{self.display_name}".replace(' ', '-')
-        channel_res = rocket_service.create_channel(channel_name)
-        return channel_res
+        """
+        Create channel in chat
+        Returns (dict):
+        """
+        channel_res = rocket_service.create_channel(self.chat_name)
+        return channel_res.json()
 
 
 class LdapFranchise(EdapMixin, Franchise):
@@ -188,30 +182,12 @@ class LdapFranchise(EdapMixin, Franchise):
         self.add_to_edap()
         self.create_teams()
         # create group folder
-        try:
-            folder_success = self.create_folder(self.display_name)
-            folder_error = None
-        except Exception as folder_exception:
-            folder_success = False
-            folder_error = str(folder_exception)
-
-        # create rocket channel
-        try:
-            channel_res = self.create_channel()
-            channel_success = channel_res.status_code == 200
-            channel_error = None
-        except Exception as channel_exception:
-            channel_success = False
-            channel_error = str(channel_exception)
-
+        folder_success = self.create_folder(self.display_name)
+        channel_res = self.create_channel()
         return {
-            'rocket': {
-                'success': channel_success,
-                'error': channel_error
-            },
+            'rocket': channel_res,
             'folder': {
-                'success': folder_success,
-                'error': folder_error
+                'success': folder_success
             }
         }
 
@@ -273,12 +249,15 @@ class Division:
 
     @property
     def chat_name(self):
-        return f'Division-{self.display_name}'
+        return f'Division-{self.display_name}'.replace(' ', '-')
 
     def create_channel(self):
-        channel_name = self.chat_name
-        channel_res = rocket_service.create_channel(channel_name)
-        return channel_res
+        """
+        Create channel in chat
+        Returns (dict):
+        """
+        channel_res = rocket_service.create_channel(self.chat_name)
+        return channel_res.json()
 
     def create_folder(self):
         return create_group_folder(self.display_name, 'Divisions')
@@ -300,31 +279,12 @@ class LdapDivision(EdapMixin, Division):
         """ Create division with self.machine_name, self.display_name, create corresponding teams """
         self.add_to_edap()
         self.create_teams()
-        # create group folder
-        try:
-            folder_success = self.create_folder()
-            folder_error = None
-        except Exception as folder_exception:
-            folder_success = False
-            folder_error = str(folder_exception)
-
-        # create rocket channel
-        try:
-            channel_res = self.create_channel()
-            channel_success = channel_res.status_code == 200
-            channel_error = None
-        except Exception as channel_exception:
-            channel_success = False
-            channel_error = str(channel_exception)
-
+        folder_success = self.create_folder()
+        channel_res = self.create_channel()
         return {
-            'rocket': {
-                'success': channel_success,
-                'error': channel_error
-            },
+            'rocket': channel_res,
             'folder': {
-                'success': folder_success,
-                'error': folder_error
+                'success': folder_success
             }
         }
 
