@@ -9,7 +9,7 @@ from .models import LdapUser, LdapFranchise, LdapDivision, LdapTeam
 class ApiUserSchema(Schema):
     """ Serialize .models.LdapUser instances to json and backwards """
     uid = fields.Str()
-    given_name = fields.Str()
+    given_name = fields.Str(load_from='name', dump_to='name')
     mail = fields.Str()
     surname = fields.Str()
 

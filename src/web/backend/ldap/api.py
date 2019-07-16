@@ -37,8 +37,8 @@ class ConfigDivisionsListViewSet(EdapMixin, MethodView):
             return jsonify({"message": "Division doesn't exist in config file"}), 400
         div_display_name = config_divisions[div_machine_name]
         division = LdapDivision(machine_name=div_machine_name, display_name=div_display_name)
-        division.create()
-        return jsonify({'message': 'Success'})
+        res = division.create()
+        return jsonify(res)
 
 
 class DivisionsViewSet(EdapMixin, MethodView):
@@ -69,12 +69,12 @@ class FranchisesViewSet(EdapMixin, MethodView):
     def post(self):
         franchise = api_franchise_schema.load(request.json).data
         try:
-            franchise.create()
+            create_res = franchise.create()
         except ConstraintError as e:
             return jsonify({'message': str(e)}), 409
         except Exception as e:
             return jsonify({'message': str(e)}), 400
-        return jsonify(api_franchise_schema.dump(franchise).data), 201
+        return jsonify(create_res), 201
 
 
 def suggest_franchise_name(franchise_machine_name):

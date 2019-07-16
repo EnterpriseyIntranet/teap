@@ -3,13 +3,14 @@ from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap
-from backend.nextcloud.utils import get_nextcloud, get_group_folder
+from backend.nextcloud.utils import get_nextcloud, get_group_folder, create_group_folder
+from backend.rocket_chat.utils import rocket_service
 
 # TODO: separate layer with edap from data models
 
 
 class User:
-    def __init__(self, uid, given_name=None, mail=None, surname=None, groups=None, franchises=None, divisions=None,
+    def __init__(self, uid=None, given_name=None, mail=None, surname=None, groups=None, franchises=None, divisions=None,
                  teams=None):
         self.uid = uid
         self.given_name = given_name
@@ -36,15 +37,34 @@ class LdapUser(EdapMixin, User):
     def __repr__(self):
         return f'<LdapUser(fqdn={self.fqdn}, uid={self.uid})>'
 
-    def create(self, password):
-        self.edap.add_user(self.uid, self.given_name, self.surname, password)
+    def add_to_edap(self, password):
+        """ Create user entity in ldap """
+        return self.edap.add_user(self.uid, self.given_name, self.surname, password)
 
-        for group in self.groups:
-            self.edap.make_uid_member_of(self.uid, group)
-
-        # add user to 'Everybody' team
+    def add_to_everybody_team(self):
+        """ Add user to everybody team in edap """
         everybody_team = LdapTeam.get_everybody_team()
-        self.edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
+        return self.edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
+
+    def create(self, password):
+        self.add_to_edap(password)
+        self.add_to_everybody_team()
+        rocket_data = self.create_chat_account(password)
+        return {
+            'rocket': rocket_data
+        }
+
+    def create_chat_account(self, password):
+        """
+        Create chat account for user
+        Args:
+            password (str):
+
+        Returns (tuple):
+            (success (bool), data (dict))
+        """
+        rocket_res = rocket_service.create_user(self.uid, password, self.mail, self.given_name)
+        return rocket_res.json()
 
     def get_teams(self):
         """ Get teams where user is a member """
@@ -108,7 +128,7 @@ class Franchise:
 
     @property
     def chat_name(self):
-        return f'Franchise-{self.display_name}'
+        return f'Franchise-{self.display_name}'.replace(' ', '-')
 
     @staticmethod
     def create_folder(folder_name):
@@ -139,6 +159,14 @@ class Franchise:
                                             LdapTeam.EVERYBODY_MACHINE_NAME,
                                             str(NxcPermission.READ.value))
 
+    def create_channel(self):
+        """
+        Create channel in chat
+        Returns (dict):
+        """
+        channel_res = rocket_service.create_channel(self.chat_name)
+        return channel_res.json()
+
 
 class LdapFranchise(EdapMixin, Franchise):
 
@@ -151,11 +179,23 @@ class LdapFranchise(EdapMixin, Franchise):
 
     def create(self):
         """ Create franchise with self.machine_name, self.display_name, create corresponding teams """
+        self.add_to_edap()
+        self.create_teams()
+        # create group folder
+        folder_success = self.create_folder(self.display_name)
+        channel_res = self.create_channel()
+        return {
+            'rocket': channel_res,
+            'folder': {
+                'success': folder_success
+            }
+        }
+
+    def add_to_edap(self):
+        """ Create franchise entity in ldap """
         if LdapFranchise.check_exists_by_display_name(self.display_name):
             raise ConstraintError('Franchise with such display name already exists')
-        self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
-        # TODO: better move to celery, because takes time
-        self.create_teams()
+        return self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
 
     def create_teams(self):
         """
@@ -209,7 +249,18 @@ class Division:
 
     @property
     def chat_name(self):
-        return f'Division-{self.display_name}'
+        return f'Division-{self.display_name}'.replace(' ', '-')
+
+    def create_channel(self):
+        """
+        Create channel in chat
+        Returns (dict):
+        """
+        channel_res = rocket_service.create_channel(self.chat_name)
+        return channel_res.json()
+
+    def create_folder(self):
+        return create_group_folder(self.display_name, 'Divisions')
 
 
 class LdapDivision(EdapMixin, Division):
@@ -220,11 +271,22 @@ class LdapDivision(EdapMixin, Division):
     def __repr__(self):
         return f'<LdapDivision(fqdn={self.fqdn}>'
 
+    def add_to_edap(self):
+        """ Add division entity to edap """
+        return self.edap.create_division(self.machine_name, display_name=self.display_name)
+
     def create(self):
         """ Create division with self.machine_name, self.display_name, create corresponding teams """
-        self.edap.create_division(self.machine_name, display_name=self.display_name)
-        # TODO: better move to celery, because takes time
+        self.add_to_edap()
         self.create_teams()
+        folder_success = self.create_folder()
+        channel_res = self.create_channel()
+        return {
+            'rocket': channel_res,
+            'folder': {
+                'success': folder_success
+            }
+        }
 
     def create_teams(self):
         """
@@ -259,6 +321,11 @@ class LdapTeam(EdapMixin, Team):
     def __repr__(self):
         return f'<LdapTeam(fqdn={self.fqdn}>'
 
+    def get_team_components(self):
+        from .serializers import edap_franchise_schema, edap_division_schema
+        franchise_json, division_json = self.edap.get_team_component_units(self.machine_name)
+        return edap_franchise_schema.load(franchise_json).data, edap_division_schema.load(division_json).data
+
     @staticmethod
     def get_everybody_team():
         """ Get or create and return 'Everybody' Team """
@@ -270,8 +337,3 @@ class LdapTeam(EdapMixin, Team):
             edap.create_team(LdapTeam.EVERYBODY_MACHINE_NAME, LdapTeam.EVERYBODY_DISPLAY_NAME)
             everybody_team = edap.get_team(LdapTeam.EVERYBODY_MACHINE_NAME)
         return edap_team_schema.load(everybody_team).data
-
-    def get_team_components(self):
-        from .serializers import edap_franchise_schema, edap_division_schema
-        franchise_json, division_json = self.edap.get_team_component_units(self.machine_name)
-        return edap_franchise_schema.load(franchise_json).data, edap_division_schema.load(division_json).data
