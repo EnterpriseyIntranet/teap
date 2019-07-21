@@ -69,8 +69,14 @@ class UserRetrieveViewSet(EdapMixin,
 
     def delete(self, username):
         """ Delete user """
-        self.edap.delete_user(username)
-        return jsonify({'success': True}), 202
+        result = dict(success=True)
+        try:
+            self.edap.delete_user(username)
+        except Exception as exc:
+            result['success'] = False
+            result['message'] = str(exc)
+            return jsonify(result), 500
+        return jsonify(result)
 
 
 class UserGroupViewSet(EdapMixin,

@@ -38,14 +38,11 @@ export default {
       if (!confirm('Are you sure you want to delete this user?')) {
         return
       }
-      LdapUsersService.delete(user)
+      LdapUsersService.delete(user.uid)
         .then(response => {
-          console.log(response.data)
-          if (response.data.status) {
-            this.$notifier.success({text: 'User successfully deleted'})
-          } else {
-            this.$notifier.error({title: 'Failed to delete', text: response.data.message})
-          }
+          this.$notifier.success({text: 'User successfully deleted'})
+        }, error => {
+          this.$notifier.error({title: 'Failed to delete', text: error.response.data.message})
         })
         .catch((error) => {
           this.$notifier.error({text: error.response.data.message})
