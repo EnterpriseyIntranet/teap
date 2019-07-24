@@ -30,7 +30,7 @@
 </template>
 
 <script>
-import { NxcUsersService } from '@/common/nextcloud-api.service.js'
+import { LdapUsersService } from '@/common/ldap-api.service.js'
 import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
 
 export default {
@@ -63,7 +63,7 @@ export default {
         return null
       }
       let data = {...this.user}
-      NxcUsersService.post(data)
+      LdapUsersService.post(data)
         .then(response => {
           let rocketData = response.data.rocket
           if (!rocketData.success) {

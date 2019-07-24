@@ -40,8 +40,8 @@
 
 <script>
 import axios from 'axios'
-import { NxcUsersService, NxcGroupsService } from '@/common/nextcloud-api.service'
-import { LdapUserFranchisesService, LdapUserDivisionsService, LdapUserTeamsService } from '@/common/ldap-api.service'
+import { NxcGroupsService } from '@/common/nextcloud-api.service'
+import { LdapUsersService, LdapUserFranchisesService, LdapUserDivisionsService, LdapUserTeamsService } from '@/common/ldap-api.service'
 import { RocketUserChannelsService } from '@/common/rocketchat-api.service'
 
 import MultipleGroupSearch from '@/components/MultipleGroupSearch.vue'
@@ -68,7 +68,7 @@ export default {
   methods: {
 
     getUser () {
-      NxcUsersService.get(this.id)
+      LdapUsersService.get(this.id)
         .then(
           response => {
             this.user = response.data
@@ -211,7 +211,7 @@ export default {
     },
 
     deleteUser () {
-      let requests = [NxcUsersService.delete(this.user.id)]
+      let requests = [LdapUsersService.delete(this.user.id)]
       if (this.deleteEmptyGroups) {
         requests.push(NxcGroupsService.deleteEmpty({groups: this.user.groups}))
       }

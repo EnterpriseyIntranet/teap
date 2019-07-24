@@ -1,11 +1,13 @@
 from flask import Blueprint, jsonify, request
 from flask.views import MethodView
-from edap import ObjectDoesNotExist, ConstraintError
+from edap import ObjectDoesNotExist, ConstraintError, MultipleObjectsFound
 
 from backend.utils import EncoderWithBytes
-from .serializers import edap_user_schema, edap_franchise_schema, edap_franchises_schema, edap_divisions_schema, \
-    edap_teams_schema
-from .api_serializers import api_franchise_schema, api_franchises_schema, api_divisions_schema, api_teams_schema
+from .serializers import edap_user_schema, edap_users_schema, edap_franchise_schema, edap_franchises_schema, \
+    edap_divisions_schema, edap_teams_schema
+from .api_serializers import api_franchise_schema, api_user_schema, api_users_schema, api_franchises_schema, \
+    api_divisions_schema, api_teams_schema
+
 from .models import LdapDivision, LdapFranchise
 from .utils import get_config_divisions, merge_divisions, EdapMixin
 
@@ -16,6 +18,91 @@ blueprint.json_encoder = EncoderWithBytes
 @blueprint.errorhandler(ObjectDoesNotExist)
 def handle_not_found(e):
     return jsonify({'message': str(e)})
+
+
+class UserListViewSet(EdapMixin, MethodView):
+
+    def get(self):
+        """ List users """
+        res = self.edap.get_users()
+        data = edap_users_schema.load(res).data
+        return jsonify(api_users_schema.dump(data).data)
+
+    def post(self):
+        """ Create user """
+        username = request.json.get('uid')
+        password = request.json.get('password')
+        name = request.json.get('name')
+        surname = request.json.get('surname')
+        if not all([username, password, name, surname]):
+            return jsonify({'message': 'username, password, name, surname fields are required'}), 400
+
+        user = api_user_schema.load(request.json).data
+        try:
+            res = user.create(password=password)
+        except ConstraintError as e:
+            return jsonify({'message': "Failed to create user. {}".format(e)}), 400
+
+        return jsonify(res)
+
+
+class UserRetrieveViewSet(EdapMixin,
+                          MethodView):
+    """ ViewSet for single user """
+    def get(self, username):
+        """ List users """
+        try:
+            user = edap_user_schema.load(self.edap.get_user(username)).data
+        except MultipleObjectsFound:
+            return jsonify({'message': 'More than 1 user found'}), 409
+        except ObjectDoesNotExist:
+            return jsonify({'message': 'User does not exist'}), 404
+        user_groups = self.edap.get_user_groups(username)
+        user = {
+            **api_user_schema.dump(user).data,
+            "groups": [group for group in user_groups],
+            "franchises": api_franchises_schema.dump(user.get_franchises()).data,
+            "divisions": api_divisions_schema.dump(user.get_divisions()).data,
+            "teams": api_teams_schema.dump(user.get_teams()).data
+        }
+        return jsonify(user)
+
+    def delete(self, username):
+        """ Delete user """
+        result = dict(success=True)
+        try:
+            self.edap.delete_user(username)
+        except Exception as exc:
+            result['success'] = False
+            result['message'] = str(exc)
+            return jsonify(result), 500
+        return jsonify(result)
+
+
+class UserGroupViewSet(EdapMixin,
+                       MethodView):
+
+    def post(self, username):
+        """ Add user to group """
+        group_fqdn = request.json.get('fqdn')
+        if not group_fqdn:
+            return jsonify({'message': 'fqdn is required parameter'}), 400
+        try:
+            self.edap.make_uid_member_of(username, group_fqdn)
+        except ConstraintError as e:
+            return jsonify({'message': str(e)}), 404
+        return jsonify({'message': 'Success'}), 200
+
+    def delete(self, username):
+        """ Remove user from group """
+        group_fqdn = request.json.get('fqdn')
+        if not group_fqdn:
+            return jsonify({'message': 'fqdn is a required parameter'})
+        try:
+            self.edap.remove_uid_member_of(username, group_fqdn)
+        except ConstraintError as e:
+            return jsonify({'message': f'Failed to delete. {e}'}), 400
+        return jsonify({'message': 'Success'}), 202
 
 
 class ConfigDivisionsListViewSet(EdapMixin, MethodView):
@@ -158,6 +245,17 @@ class UserTeamsViewSet(EdapMixin, MethodView):
         user.remove_from_team(machine_name)
         return jsonify({'message': 'success'}), 202
 
+
+user_list_view = UserListViewSet.as_view('users_api')
+blueprint.add_url_rule('/users/', view_func=user_list_view, methods=['GET', 'POST'])
+
+user_view = UserRetrieveViewSet.as_view('user_api')
+blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['GET', 'DELETE'])
+blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['PATCH'])
+blueprint.add_url_rule('/users/<username>/<action>', view_func=user_view, methods=['PATCH'])
+
+user_group_view = UserGroupViewSet.as_view('user_groups_api')
+blueprint.add_url_rule('/users/<username>/groups/', view_func=user_group_view, methods=['POST', 'DELETE'])
 
 config_divisions_list_view = ConfigDivisionsListViewSet.as_view('config_divisions_api')
 blueprint.add_url_rule('config-divisions', view_func=config_divisions_list_view, methods=['GET', 'POST'])

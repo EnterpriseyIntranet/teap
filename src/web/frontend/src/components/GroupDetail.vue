@@ -23,7 +23,8 @@
 </template>
 
 <script>
-import { NxcGroupsService, NxcUserGroupsService } from '@/common/nextcloud-api.service'
+import { NxcGroupsService } from '@/common/nextcloud-api.service'
+import { LdapUserGroupsService } from '@/common/ldap-api.service'
 
 export default {
   name: 'GroupDetail',
@@ -67,7 +68,7 @@ export default {
       if (!confirm('Are you sure you want to delete user from this group?')) {
         return
       }
-      NxcUserGroupsService.delete(user, this.id)
+      LdapUserGroupsService.delete(user, this.id)
         .then(() => {
           this.$notifier.success()
           this.getGroup()

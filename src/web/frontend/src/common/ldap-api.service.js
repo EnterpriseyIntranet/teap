@@ -2,6 +2,31 @@ import ApiService from './api.service'
 
 const BASE_URL = 'ldap/'
 
+export const LdapUsersService = {
+  get (slug, action) {
+    return ApiService.get(`${BASE_URL}users`, slug)
+  },
+
+  delete (slug) {
+    return ApiService.delete(`${BASE_URL}users`, slug)
+  },
+
+  post (params) {
+    return ApiService.post(`${BASE_URL}users`, params)
+  }
+}
+
+export const LdapUserGroupsService = {
+  post (username, groupFqdn, action = '') {
+    let resource = action ? `${BASE_URL}users/${username}/groups/subadmins` : `users/${username}/groups`
+    return ApiService.post(resource, {'fqdn': groupFqdn})
+  },
+
+  delete (username, fqdn) {
+    return ApiService.delete(`${BASE_URL}users/${username}/groups`, '', {fqdn: fqdn})
+  }
+}
+
 export const LdapConfigDivisionsService = {
   get () {
     return ApiService.get(`${BASE_URL}config-divisions`)
