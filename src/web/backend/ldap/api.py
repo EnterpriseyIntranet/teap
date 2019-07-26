@@ -4,7 +4,7 @@ from edap import ObjectDoesNotExist, ConstraintError, MultipleObjectsFound
 
 from backend.utils import EncoderWithBytes
 from .serializers import edap_user_schema, edap_users_schema, edap_franchise_schema, edap_franchises_schema, \
-    edap_divisions_schema, edap_teams_schema
+    edap_divisions_schema, edap_teams_schema, edap_division_schema
 from .api_serializers import api_franchise_schema, api_user_schema, api_users_schema, api_franchises_schema, \
     api_divisions_schema, api_teams_schema
 
@@ -17,7 +17,7 @@ blueprint.json_encoder = EncoderWithBytes
 
 @blueprint.errorhandler(ObjectDoesNotExist)
 def handle_not_found(e):
-    return jsonify({'message': str(e)})
+    return jsonify({'message': str(e)}), 404
 
 
 class UserListViewSet(EdapMixin, MethodView):
@@ -202,9 +202,10 @@ class UserFranchisesViewSet(EdapMixin, MethodView):
 
     def post(self, uid):
         """ add user to franchise """
-        user = edap_user_schema.load(self.edap.get_user(uid)).data
+        user = edap_user_schema.load(self.edap.get_user(uid)).data  # to check if user exists, or return 404
         machine_name = request.json.get('machineName')
-        user.add_to_franchise(machine_name)
+        franchise = edap_franchise_schema.load(self.edap.get_franchise(machine_name)).data
+        franchise.add_user(uid)
         return jsonify({'message': 'success'}), 200
 
     def delete(self, uid):
@@ -218,9 +219,10 @@ class UserDivisionsViewSet(EdapMixin, MethodView):
 
     def post(self, uid):
         """ add user to team """
-        user = edap_user_schema.load(self.edap.get_user(uid)).data
+        user = edap_user_schema.load(self.edap.get_user(uid)).data  # to check if user exists, or return 404
         machine_name = request.json.get('machineName')
-        user.add_to_division(machine_name)
+        division = edap_division_schema.load(self.edap.get_division(machine_name)).data
+        division.add_user(uid)
         return jsonify({'message': 'success'}), 200
 
     def delete(self, uid):

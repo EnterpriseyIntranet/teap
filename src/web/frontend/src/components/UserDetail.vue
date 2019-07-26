@@ -131,28 +131,28 @@ export default {
     addToFranchise (group) {
       this.addToGroup(LdapUserFranchisesService, group.machineName)
         .then(() => {
-          this.addToRocketGroup(`Franchise-${group.displayName}`)
+          this.addToRocketGroup(`Franchise-${group.displayName.replace(' ', '-')}`)
         })
     },
 
     removeFromFranchise (group, callback) {
       this.removeFromGroup(LdapUserFranchisesService, group.machineName, 'franchises')
         .then(() => {
-          this.deleteFromRocketGroup(`Franchise-${group.displayName}`)
+          this.deleteFromRocketGroup(`Franchise-${group.displayName.replace(' ', '-')}`)
         })
     },
 
     addToDivision (group) {
       this.addToGroup(LdapUserDivisionsService, group.machineName)
         .then(() => {
-          this.addToRocketGroup(`Division-${group.displayName}`)
+          this.addToRocketGroup(`Division-${group.displayName.replace(' ', '-')}`)
         })
     },
 
     removeFromDivision (group) {
       this.removeFromGroup(LdapUserDivisionsService, group.machineName, 'divisions')
         .then(() => {
-          this.deleteFromRocketGroup(`Division-${group.displayName}`)
+          this.deleteFromRocketGroup(`Division-${group.displayName.replace(' ', '-')}`)
         })
     },
 
@@ -161,7 +161,7 @@ export default {
         .then(() => {
           this.getUser()
           RocketUserChannelsService.addToTeamChats(this.user.uid, group.machineName)
-            .then(() => {
+            .then(() => { // FIXME: runs even when callback failed
               this.$notifier.success({title: 'Successfully added to team chats'})
             }, (error) => {
               this.$notifier.error({title: 'Failed to add to team chats', text: error.response.data.message})
