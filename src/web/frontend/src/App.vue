@@ -5,6 +5,7 @@
       <router-link :to="{name: 'divisions'}">Divisions</router-link>
       <router-link :to="{name: 'franchises'}">Franchises</router-link>
       <router-link :to="{name: 'teams'}">Teams</router-link>
+      <router-link :to="{name: 'actions'}">Actions</router-link>
     </nav>
     <router-view/>
     <notifications position="bottom right"/>

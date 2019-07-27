@@ -1,6 +1,11 @@
+import logging
+
 from flask import g, current_app
 
 from rocketchat_API.rocketchat import RocketChat
+from ..actions.models import Action
+
+logger = logging.getLogger()
 
 
 def get_rocket():
@@ -40,7 +45,22 @@ class RocketChatService(RocketMixin):
         Returns (response):
 
         """
-        return self.rocket.users_create(email, name, password, username, requirePasswordChange=True)
+        res = None
+        success = False
+        try:
+            res = self.rocket.users_create(email, name, password, username, requirePasswordChange=True)
+            if res.status_code == 200:
+                success = True
+        except Exception as e:
+            logger.exception('Exception during user creation')
+            success = False
+        # TODO: what to do with password ?
+        Action.create_event(event=Action.CREATE_ROCKET_USER,
+                            success=success,
+                            username=username,
+                            email=email,
+                            name=name)
+        return res
 
     def create_channel(self, channel_name):
         """
@@ -51,7 +71,19 @@ class RocketChatService(RocketMixin):
         Returns:
 
         """
-        return self.rocket.channels_create(channel_name)
+        res = None
+        success = False
+        try:
+            res = self.rocket.channels_create(channel_name)
+            if res.status_code == 200:
+                success = True
+        except Exception as e:
+            logger.exception('Exception during channel creation')
+            success = False
+        Action.create_event(event=Action.CREATE_ROCKET_CHANNEL,
+                            success=success,
+                            channel_name=channel_name)
+        return res
 
     def delete_user(self, user_id):
         return self.rocket.users_delete(user_id)

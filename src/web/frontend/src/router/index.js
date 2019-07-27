@@ -9,6 +9,7 @@ const routerOptions = [
   {name: 'divisions', path: '/divisions', component: 'Divisions'},
   {name: 'franchises', path: '/franchises', component: 'Franchises'},
   {name: 'teams', path: '/teams', component: 'Teams'},
+  {name: 'actions', path: '/actions', component: 'Actions'},
   {name: 'notFound', path: '*', component: 'NotFound'}
 ]
 

@@ -1,0 +1,18 @@
+version: '3'
+
+volumes:
+  local_postgres_data:
+
+services:
+
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  app:
+    build: .
