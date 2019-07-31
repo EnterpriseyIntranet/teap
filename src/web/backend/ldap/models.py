@@ -181,9 +181,12 @@ class Franchise(GroupChatMixin, GroupFolderMixin):
             LdapFranchise.create_main_folder()
 
         create_folder_res = nxc.create_group_folder(self.folder_path)
-        grant_access_res = nxc.grant_access_to_group_folder(create_folder_res.data['id'], self.display_name)
+        grant_access_res = nxc.grant_access_to_group_folder(create_folder_res.data['id'], self.machine_name)
         grant_everybody_access = nxc.grant_access_to_group_folder(create_folder_res.data['id'],
                                                                   LdapTeam.EVERYBODY_MACHINE_NAME)
+        nxc.set_permissions_to_group_folder(create_folder_res.data['id'],
+                                            LdapTeam.EVERYBODY_MACHINE_NAME,
+                                            str(NxcPermission.READ.value))
         return create_folder_res.is_ok and grant_access_res.is_ok and grant_everybody_access.is_ok
 
     @staticmethod
