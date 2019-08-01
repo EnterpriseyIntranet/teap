@@ -1,4 +1,5 @@
 import logging
+from functools import wraps
 
 from flask import g, current_app
 
@@ -30,8 +31,32 @@ class RocketMixin:
         return get_rocket()
 
 
+def log_rocket_action(event_name):
+    def wrapper(func):
+        @wraps(func)
+        def inner_wrapper(self, **kwargs):
+            res = None
+            success = False
+            message = None
+            try:
+                res = func(self, **kwargs)
+                if res.status_code == 200:
+                    success = True
+            except Exception as e:
+                logger.exception(e)
+                success = False
+                message = str(e)
+            # TODO: what to do with password in create_user method?
+            filtered_kwargs = {key: value for key, value in kwargs.items() if key != 'password'}
+            Action.create_event(event=event_name, success=success, message=message, **filtered_kwargs)
+            return res
+        return inner_wrapper
+    return wrapper
+
+
 class RocketChatService(RocketMixin):
 
+    @log_rocket_action(event_name=Action.CREATE_ROCKET_USER)
     def create_user(self, username, password, email, name):
         """
         Create user
@@ -45,23 +70,9 @@ class RocketChatService(RocketMixin):
         Returns (response):
 
         """
-        res = None
-        success = False
-        try:
-            res = self.rocket.users_create(email, name, password, username, requirePasswordChange=True)
-            if res.status_code == 200:
-                success = True
-        except Exception as e:
-            logger.exception('Exception during user creation')
-            success = False
-        # TODO: what to do with password ?
-        Action.create_event(event=Action.CREATE_ROCKET_USER,
-                            success=success,
-                            username=username,
-                            email=email,
-                            name=name)
-        return res
+        return self.rocket.users_create(email, name, password, username, requirePasswordChange=True)
 
+    @log_rocket_action(event_name=Action.CREATE_ROCKET_CHANNEL)
     def create_channel(self, channel_name):
         """
         Create channel
@@ -71,19 +82,11 @@ class RocketChatService(RocketMixin):
         Returns:
 
         """
-        res = None
-        success = False
-        try:
-            res = self.rocket.channels_create(channel_name)
-            if res.status_code == 200:
-                success = True
-        except Exception as e:
-            logger.exception('Exception during channel creation')
-            success = False
-        Action.create_event(event=Action.CREATE_ROCKET_CHANNEL,
-                            success=success,
-                            channel_name=channel_name)
-        return res
+        return self.rocket.channels_create(channel_name)
+
+    @log_rocket_action(event_name=Action.INVITE_USER_TO_CHANNEL)
+    def invite_user_to_channel(self, rocket_channel, rocket_user):
+        return self.rocket.channels_invite(rocket_channel, rocket_user)
 
     def delete_user(self, user_id):
         return self.rocket.users_delete(user_id)

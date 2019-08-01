@@ -21,7 +21,7 @@ class GroupChatMixin:
         Create channel in chat
         Returns (dict):
         """
-        channel_res = rocket_service.create_channel(self.chat_name)
+        channel_res = rocket_service.create_channel(channel_name=self.chat_name)
         return channel_res.json()
 
     def channel_exists(self):

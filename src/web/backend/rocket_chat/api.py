@@ -62,7 +62,8 @@ class UserRocketChannels(RocketMixin, MethodView):
         if not rocket_user:
             return jsonify({'message': 'Rocket user not found'}), 404
 
-        res = self.rocket.channels_invite(rocket_channel['_id'], rocket_user['_id'])
+        res = rocket_service.invite_user_to_channel(rocket_channel=rocket_channel['_id'],
+                                                    rocket_user=rocket_user['_id'])
         return jsonify(res.json()), res.status_code
 
     def delete(self, user_id, channel):
@@ -98,8 +99,10 @@ class UserTeamsChatsViewSet(RocketMixin, EdapMixin, MethodView):
         if not all([user, franchise_channel, division_channel]):
             return jsonify({'message': 'Corresponding franchise or division channels not found'}), 400
 
-        franchise_chat_res = self.rocket.channels_invite(franchise_channel['_id'], user['_id'])
-        division_chat_res = self.rocket.channels_invite(division_channel['_id'], user['_id'])
+        franchise_chat_res = rocket_service.invite_user_to_channel(rocket_channel=franchise_channel['_id'],
+                                                                   rocket_user=user['_id'])
+        division_chat_res = rocket_service.invite_user_to_channel(rocket_channel=division_channel['_id'],
+                                                                  rocket_user=user['_id'])
 
         if franchise_chat_res.status_code != 200:
             return jsonify(franchise_chat_res.json()), franchise_chat_res.status_code

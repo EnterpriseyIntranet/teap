@@ -3,16 +3,17 @@
     <h2>Actions: </h2>
     <div>
       <p>Actions:</p>
-      <ul v-if="actions">
-        <li v-for="action in actions" :key="action.id">
-          <p>
-            {{ action }}
-            <span v-if="!action.success">
-              <button @click="retryAction(action)">retry</button>
-            </span>
-          </p>
-        </li>
-      </ul>
+      <div class="md-5">
+        <ul class="list-group" v-if="actions">
+          <li
+            class="list-group-item"
+            :class="{'list-group-item-success': action.success, 'list-group-item-danger': !action.success}"
+            v-for="action in actions" :key="action.id">
+            <p><strong>{{ action.event_display }}</strong></p>
+            {{ action }} <button v-if="!action.success" @click="retryAction(action)">retry</button>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
