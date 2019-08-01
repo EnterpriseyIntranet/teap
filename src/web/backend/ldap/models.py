@@ -9,6 +9,49 @@ from backend.rocket_chat.utils import rocket_service
 # TODO: separate layer with edap from data models
 
 
+class GroupChatMixin:
+    """ Mixin for posix groups to work with chat channels """
+
+    @property
+    def chat_name(self):
+        raise NotImplementedError
+
+    def create_channel(self):
+        """
+        Create channel in chat
+        Returns (dict):
+        """
+        channel_res = rocket_service.create_channel(self.chat_name)
+        return channel_res.json()
+
+    def channel_exists(self):
+        """
+        Check if franchise channel in chat exists
+        Returns (bool):
+        """
+        return bool(rocket_service.get_channel_by_name(self.chat_name))
+
+
+class GroupFolderMixin:
+    """ Mixin for posix groups to work with group folder in Nextcloud """
+
+    @property
+    def folder_path(self):
+        raise NotImplementedError
+
+    def create_folder(self):
+        raise NotImplementedError
+
+    def folder_exists(self):
+        """ Check if group folder exists in Nextcloud """
+        nxc = get_nextcloud()
+        data = nxc.get_group_folders().data
+        for _, folder_info in data.items():
+            if folder_info['mount_point'] == self.folder_path:
+                return True
+        return False
+
+
 class User:
     def __init__(self, uid=None, given_name=None, mail=None, surname=None, groups=None, franchises=None, divisions=None,
                  teams=None):
@@ -79,8 +122,8 @@ class LdapUser(EdapMixin, User):
         franchise, division = self.edap.get_team_component_units(team_machine_name)
         franchise = edap_franchise_schema.load(franchise).data
         division = edap_division_schema.load(division).data
-        self.edap.make_user_member_of_franchise(self.uid, franchise.machine_name)
-        self.edap.make_uid_member_of_division(self.uid, division.machine_name)
+        franchise.add_user(self.uid)
+        division.add_user(self.uid)
 
     def remove_from_team(self, team_machine_name):
         """ Remove user from team """
@@ -91,10 +134,6 @@ class LdapUser(EdapMixin, User):
         franchises_raw = self.edap.get_franchises(f'memberUid={self.uid}')
         return edap_franchises_schema.load(franchises_raw).data
 
-    def add_to_franchise(self, franchise_machine_name):
-        """ Add user to franchise """
-        self.edap.make_user_member_of_franchise(self.uid, franchise_machine_name)
-
     def remove_from_franchise(self, franchise_machine_name):
         """ Remove user from franchise """
         self.edap.remove_uid_member_of_franchise(self.uid, franchise_machine_name)
@@ -103,10 +142,6 @@ class LdapUser(EdapMixin, User):
         from .serializers import edap_divisions_schema
         divisions_raw = self.edap.get_divisions(f'memberUid={self.uid}')
         return edap_divisions_schema.load(divisions_raw).data
-
-    def add_to_division(self, division_machine_name):
-        """ Add user to franchise """
-        self.edap.make_uid_member_of_division(self.uid, division_machine_name)
 
     def remove_from_division(self, division_machine_name):
         """ Remove user from division """
@@ -118,7 +153,7 @@ class LdapUser(EdapMixin, User):
         return edap_teams_schema.load(teams_raw).data
 
 
-class Franchise:
+class Franchise(GroupChatMixin, GroupFolderMixin):
 
     GROUP_FOLDER = 'Franchises'
 
@@ -130,8 +165,11 @@ class Franchise:
     def chat_name(self):
         return f'Franchise-{self.display_name}'.replace(' ', '-')
 
-    @staticmethod
-    def create_folder(folder_name):
+    @property
+    def folder_path(self):
+        return "/".join([Franchise.GROUP_FOLDER, self.display_name])
+
+    def create_folder(self):
         """
         Create subfolder in 'Franchises' folder with read-write access to members of Franchise
         and read access for 'Everybody' team
@@ -142,10 +180,13 @@ class Franchise:
         if not main_franchises_folder:
             LdapFranchise.create_main_folder()
 
-        create_folder_res = nxc.create_group_folder("/".join([Franchise.GROUP_FOLDER, folder_name]))
-        grant_access_res = nxc.grant_access_to_group_folder(create_folder_res.data['id'], folder_name)
+        create_folder_res = nxc.create_group_folder(self.folder_path)
+        grant_access_res = nxc.grant_access_to_group_folder(create_folder_res.data['id'], self.machine_name)
         grant_everybody_access = nxc.grant_access_to_group_folder(create_folder_res.data['id'],
                                                                   LdapTeam.EVERYBODY_MACHINE_NAME)
+        nxc.set_permissions_to_group_folder(create_folder_res.data['id'],
+                                            LdapTeam.EVERYBODY_MACHINE_NAME,
+                                            str(NxcPermission.READ.value))
         return create_folder_res.is_ok and grant_access_res.is_ok and grant_everybody_access.is_ok
 
     @staticmethod
@@ -158,14 +199,6 @@ class Franchise:
         nxc.set_permissions_to_group_folder(main_folder_id,
                                             LdapTeam.EVERYBODY_MACHINE_NAME,
                                             str(NxcPermission.READ.value))
-
-    def create_channel(self):
-        """
-        Create channel in chat
-        Returns (dict):
-        """
-        channel_res = rocket_service.create_channel(self.chat_name)
-        return channel_res.json()
 
 
 class LdapFranchise(EdapMixin, Franchise):
@@ -182,7 +215,7 @@ class LdapFranchise(EdapMixin, Franchise):
         self.add_to_edap()
         self.create_teams()
         # create group folder
-        folder_success = self.create_folder(self.display_name)
+        folder_success = self.create_folder()
         channel_res = self.create_channel()
         return {
             'rocket': channel_res,
@@ -196,6 +229,13 @@ class LdapFranchise(EdapMixin, Franchise):
         if LdapFranchise.check_exists_by_display_name(self.display_name):
             raise ConstraintError('Franchise with such display name already exists')
         return self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
+
+    def add_user(self, uid):
+        self.edap.make_user_member_of_franchise(uid, self.machine_name)
+        if not self.channel_exists():
+            self.create_channel()
+        if not self.folder_exists():
+            self.create_folder()
 
     def create_teams(self):
         """
@@ -242,7 +282,7 @@ class LdapFranchise(EdapMixin, Franchise):
         return labelled_name
 
 
-class Division:
+class Division(GroupChatMixin, GroupFolderMixin):
     def __init__(self, machine_name=None, display_name=None):
         self.machine_name = machine_name
         self.display_name = display_name
@@ -251,13 +291,9 @@ class Division:
     def chat_name(self):
         return f'Division-{self.display_name}'.replace(' ', '-')
 
-    def create_channel(self):
-        """
-        Create channel in chat
-        Returns (dict):
-        """
-        channel_res = rocket_service.create_channel(self.chat_name)
-        return channel_res.json()
+    @property
+    def folder_path(self):
+        return "/".join(['Divisions', self.display_name])
 
     def create_folder(self):
         return create_group_folder(self.display_name, 'Divisions')
@@ -301,6 +337,13 @@ class LdapDivision(EdapMixin, Division):
             machine_name = self.edap.make_team_machine_name(franchise.machine_name, self.machine_name)
             display_name = self.edap.make_team_display_name(franchise.display_name, self.display_name)
             self.edap.create_team(machine_name, display_name)
+
+    def add_user(self, uid):
+        self.edap.make_uid_member_of_division(uid, self.machine_name)
+        if not self.channel_exists():
+            self.create_channel()
+        if not self.folder_exists():
+            self.create_folder()
 
 
 class Team:

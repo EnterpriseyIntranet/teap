@@ -54,7 +54,8 @@ class RocketChatService(RocketMixin):
 
     def get_channel_by_name(self, channel_name):
         """ Get rocket channel json object by it's name """
-        res = self.rocket.channels_list(query='{{"name": {{"$eq": "{channel_name}"}}}}'.format(channel_name=channel_name))
+        query = '{{"fname": {{"$eq": "{channel_name}"}}}}'.format(channel_name=channel_name)
+        res = self.rocket.channels_list(query=query)
         if res.status_code != 200:
             return None
         channels = res.json()['channels']

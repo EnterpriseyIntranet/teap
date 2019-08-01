@@ -53,12 +53,14 @@ class UserRocketChannels(RocketMixin, MethodView):
 
     def post(self, user_id):
         channel = request.json.get('channel')
-
         rocket_user = rocket_service.get_user_by_username(user_id)
         rocket_channel = rocket_service.get_channel_by_name(channel)
 
-        if not all([rocket_user, rocket_channel]):
-            return jsonify({'message': 'Rocket channel or user not found'}), 404
+        if not rocket_channel:
+            return jsonify({'message': 'Rocket channel not found'}), 404
+
+        if not rocket_user:
+            return jsonify({'message': 'Rocket user not found'}), 404
 
         res = self.rocket.channels_invite(rocket_channel['_id'], rocket_user['_id'])
         return jsonify(res.json()), res.status_code
@@ -67,8 +69,11 @@ class UserRocketChannels(RocketMixin, MethodView):
         rocket_user = rocket_service.get_user_by_username(user_id)
         rocket_channel = rocket_service.get_channel_by_name(channel)
 
-        if not all([rocket_user, rocket_channel]):
-            return jsonify({'message': 'Rocket channel or user not found'}), 404
+        if not rocket_channel:
+            return jsonify({'message': 'Rocket channel not found'}), 404
+
+        if not rocket_user:
+            return jsonify({'message': 'Rocket user not found'}), 404
 
         self.rocket.channels_kick(rocket_channel['_id'], rocket_user['_id'])
         return jsonify({"message": "success"}), 202
