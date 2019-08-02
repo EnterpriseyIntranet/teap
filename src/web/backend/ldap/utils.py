@@ -1,6 +1,10 @@
+import logging
+
 from flask import g, current_app
-from edap import Edap
+from edap import Edap, ObjectDoesNotExist
 import configparser
+
+logger = logging.getLogger()
 
 
 def get_edap():
@@ -62,3 +66,12 @@ def merge_divisions(config_divisions, ldap_divisions):
             }
 
     return divisions
+
+
+def check_consistency():
+    """ Check if all required system objects exist in Edap """
+    edap = get_edap()
+    try:
+        edap.get_team('everybody')
+    except ObjectDoesNotExist:
+        logger.warning('Edap Everybody team is missing')
