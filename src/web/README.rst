@@ -103,6 +103,9 @@ A list of folders that should exist:
 
 Franchises folder should have read only permission for group "everybody"
 
+**Command to check services consistency** ::
+
+    flask check-services-consistency
 
 Pages
 ------
@@ -115,5 +118,4 @@ Pages
 
 | On divisions page you can see 3 lists: for Normal divisions (exists in ldap and in config), Config only divisions, ldap only divisions.
 | You are able to create Config only divisions and delete ldap only divisions.
-| When division is created, 2 more requests are sent to the server - rocket chat channel creation, group folder creation,
-user will see notification if they were successful or some error happened.
+| When division is created, 2 more requests are sent to the server - rocket chat channel creation, group folder creation, user will see notification if they were successful or some error happened.
