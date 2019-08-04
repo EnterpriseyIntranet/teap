@@ -1,19 +1,34 @@
 <template>
   <div>
     <h2>Actions: </h2>
-    <div>
-      <p>Actions:</p>
-      <div class="md-5">
-        <ul class="list-group" v-if="actions">
-          <li
-            class="list-group-item"
-            :class="{'list-group-item-success': action.success, 'list-group-item-danger': !action.success}"
-            v-for="action in actions" :key="action.id">
-            <p><strong>{{ action.event_display }}</strong></p>
-            {{ action }} <button v-if="!action.success" @click="retryAction(action)">retry</button>
-          </li>
-        </ul>
-      </div>
+    <div class="row">
+        <div class="md-5">
+          <ul class="list-group" v-if="actions">
+            <li
+              class="list-group-item"
+              :class="{'list-group-item-success': action.success, 'list-group-item-danger': !action.success}"
+              v-for="action in actions" :key="action.id">
+              <p><strong>{{ action.event_display }}</strong></p>
+              {{ action }} <button v-if="!action.success" @click="retryAction(action)">retry</button>
+            </li>
+          </ul>
+        </div>
+    </div>
+
+    <!-- pagination -->
+    <div v-if="count > 20">
+      <paginate
+        :page-count="pagesCount"
+        :click-handler="changePage"
+        :page-range="2"
+        :margin-pages="2"
+        :prev-text="'Prev'"
+        :next-text="'Next'"
+        :prev-class="'page-item page-link'"
+        :next-class="'page-item page-link'"
+        :container-class="'pagination justify-content-center'"
+        :page-class="'page-item page-link'">
+      </paginate>
     </div>
   </div>
 </template>
@@ -24,14 +39,19 @@ import { ActionsService } from '../common/actions-api.service.js'
 export default {
   data () {
     return {
-      actions: []
+      actions: [],
+      count: 0,
+      page: 1,
+      pagesCount: 1
     }
   },
 
   methods: {
     getActions () {
-      ActionsService.get().then((res) => {
-        this.actions = res.data
+      ActionsService.get({page: this.page}).then((res) => {
+        this.actions = res.data.data
+        this.count = res.data.count
+        this.pagesCount = this.count / 20
       })
     },
 
@@ -42,6 +62,11 @@ export default {
       }).catch(error => {
         this.$notifier.error({title: 'Action retry failed', text: error.response.data.message})
       })
+    },
+
+    changePage (page) {
+      this.page = page
+      this.getActions()
     }
 
   },

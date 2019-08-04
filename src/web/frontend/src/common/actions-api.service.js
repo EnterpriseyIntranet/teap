@@ -5,7 +5,7 @@ const BASE_URL = 'actions'
 export const ActionsService = {
 
   get (params) {
-    return ApiService.get(`${BASE_URL}`)
+    return ApiService.get(`${BASE_URL}`, '', params)
   },
 
   post (id) {
