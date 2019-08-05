@@ -73,6 +73,39 @@ To apply the migration.
 
 For a full migration command reference, run ``flask db --help``.
 
+TEAP Consistency
+-----------------
+Teap project manages together a set of different instances which interact together.
+
+Each instance have required system objects to be created, which is required for correct system work.
+
+List of objects:
+
+**Edap**
+
+Organizational units with cn:
+
+- cn=divisions
+- cn=franchises
+- cn=people
+- cn=teams
+
+Teams organizational unit should have "cn=everybody" posixGroup entry.The purpose of this group is that all
+newly created users are added to it by default, to set permissions for common folders in Nextcloud.
+This team will be created automatically when new user is added.
+
+**Nextcloud**
+
+A list of folders that should exist:
+
+- Franchises
+- Divisions
+
+Franchises folder should have read only permission for group "everybody"
+
+**Command to check services consistency** ::
+
+    flask check-services-consistency
 
 Pages
 ------
@@ -85,5 +118,4 @@ Pages
 
 | On divisions page you can see 3 lists: for Normal divisions (exists in ldap and in config), Config only divisions, ldap only divisions.
 | You are able to create Config only divisions and delete ldap only divisions.
-| When division is created, 2 more requests are sent to the server - rocket chat channel creation, group folder creation,
-user will see notification if they were successful or some error happened.
+| When division is created, 2 more requests are sent to the server - rocket chat channel creation, group folder creation, user will see notification if they were successful or some error happened.

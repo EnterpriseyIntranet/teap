@@ -1,6 +1,11 @@
+import logging
+
 from flask import g, current_app
 
 from nextcloud import NextCloud
+from nextcloud.base import Permission
+
+logger = logging.getLogger()
 
 
 def get_nextcloud():
@@ -56,3 +61,27 @@ def get_group_folder(mount_point):
             if value['mount_point'] == mount_point:
                 return key
     return None
+
+
+def check_consistency():
+    """ Check if all required system objects exist in Edap """
+    from backend.ldap.models import Franchise, Division
+    nxc = get_nextcloud()
+
+    main_franchises_folder_id = get_group_folder(Franchise.GROUP_FOLDER)
+    if not main_franchises_folder_id:
+        logger.warning('Nextcloud main franchises folder is missing. '
+                       'It will be created automatically, when new franchise is created')
+
+    # check permission for everybody team
+    if main_franchises_folder_id:
+        main_franchises_folder = nxc.get_group_folder(main_franchises_folder_id).data
+        if 'everybody' not in main_franchises_folder['groups']:
+            logger.warning('Nextcloud main franchises folder doesn\'t have Read permission for Everybody Team')
+        elif main_franchises_folder['groups']['everybody'] != Permission.READ:
+            logger.warning('Nextcloud main franchises folder has wrong permissions for Everybody Team')
+
+    main_divisions_folder = get_group_folder(Division.GROUP_FOLDER)
+    if not main_divisions_folder:
+        logger.warning('Nextcloud main divisions folder is missing. '
+                       'It will be created automatically, when new division is created')

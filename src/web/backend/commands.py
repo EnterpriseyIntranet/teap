@@ -8,6 +8,9 @@ from flask import current_app
 from flask.cli import with_appcontext
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 
+from backend.nextcloud.utils import check_consistency as check_nextcloud_consistency
+from backend.ldap.utils import check_consistency as check_ldap_consistency
+
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
 TEST_PATH = os.path.join(PROJECT_ROOT, 'tests')
@@ -123,3 +126,10 @@ def urls(url, order):
 
     for row in rows:
         click.echo(str_template.format(*row[:column_length]))
+
+
+@click.command()
+@with_appcontext
+def check_services_consistency():
+    check_ldap_consistency()
+    check_nextcloud_consistency()

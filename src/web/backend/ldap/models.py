@@ -283,6 +283,9 @@ class LdapFranchise(EdapMixin, Franchise):
 
 
 class Division(GroupChatMixin, GroupFolderMixin):
+
+    GROUP_FOLDER = 'Divisions'
+
     def __init__(self, machine_name=None, display_name=None):
         self.machine_name = machine_name
         self.display_name = display_name
@@ -296,7 +299,7 @@ class Division(GroupChatMixin, GroupFolderMixin):
         return "/".join(['Divisions', self.display_name])
 
     def create_folder(self):
-        return create_group_folder(self.display_name, 'Divisions')
+        return create_group_folder(self.display_name, self.GROUP_FOLDER)
 
 
 class LdapDivision(EdapMixin, Division):
