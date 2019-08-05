@@ -2,8 +2,8 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_user, logout_user, login_required
 
-from backend.public.forms import LoginForm
-from backend.utils import flash_errors
+from ..public.forms import LoginForm
+from ..utils import flash_errors
 
 blueprint = Blueprint('public', __name__, template_folder='./templates')
 

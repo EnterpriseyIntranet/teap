@@ -3,8 +3,8 @@ from flask.views import MethodView
 
 from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 
-from backend.utils import EncoderWithBytes
-from backend.ldap.utils import EdapMixin
+from ..utils import EncoderWithBytes
+from ..ldap.utils import EdapMixin
 
 from .utils import create_group_folder, get_nextcloud
 

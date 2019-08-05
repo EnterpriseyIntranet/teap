@@ -1,8 +1,8 @@
 """The app module, containing the app factory function."""
 from flask import Flask, render_template
 
-from backend import commands, public, user, core, nextcloud, rocket_chat, ldap
-from backend.extensions import bcrypt, cache, db, login_manager, migrate
+from . import commands, public, user, core, nextcloud, rocket_chat, ldap
+from .extensions import bcrypt, cache, db, login_manager, migrate
 
 
 def create_app(config_object='backend.settings'):

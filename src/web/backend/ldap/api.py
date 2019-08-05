@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask.views import MethodView
 from edap import ObjectDoesNotExist, ConstraintError, MultipleObjectsFound
 
-from backend.utils import EncoderWithBytes
+from ..utils import EncoderWithBytes
 from .serializers import edap_user_schema, edap_users_schema, edap_franchise_schema, edap_franchises_schema, \
     edap_divisions_schema, edap_teams_schema, edap_division_schema
 from .api_serializers import api_franchise_schema, api_user_schema, api_users_schema, api_franchises_schema, \

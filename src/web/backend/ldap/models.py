@@ -3,8 +3,8 @@ from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap
-from backend.nextcloud.utils import get_nextcloud, get_group_folder, create_group_folder
-from backend.rocket_chat.utils import rocket_service
+from ..nextcloud.utils import get_nextcloud, get_group_folder, create_group_folder
+from ..rocket_chat.utils import rocket_service
 
 # TODO: separate layer with edap from data models
 
