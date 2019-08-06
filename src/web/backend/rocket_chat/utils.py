@@ -1,15 +1,16 @@
-from flask import g
+from flask import g, current_app
 
 from rocketchat_API.rocketchat import RocketChat
-
-from ..settings import ROCKETCHAT_HOST, ROCKETCHAT_PASSWORD, ROCKETCHAT_USER
 
 
 def get_rocket():
     """ Create if doesn't exist or return edap from flask g object """
     if 'rocket' not in g:
         try:
-            g.rocket = RocketChat(ROCKETCHAT_USER, ROCKETCHAT_PASSWORD, server_url=ROCKETCHAT_HOST)
+            g.rocket = RocketChat(
+                    current_app.config["ROCKETCHAT_USER"],
+                    current_app.config["ROCKETCHAT_PASSWORD"],
+                    server_url=current_app.config["ROCKETCHAT_HOST"])
             g.rocket_exception = None
         except Exception as e:
             g.rocket = None
