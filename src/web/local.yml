@@ -1,18 +1,28 @@
 version: '3'
 
-volumes:
-  local_postgres_data:
 
 services:
 
   db:
-    image: postgres
+    image: "postgres:alpine"
     restart: always
-    ports:
-      - 5432:5432
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    networks:
+      postgres:
 
   app:
     build: .
+    ports:
+      - "8080:8080"
+    image: teap
+    depends_on:
+      - db
+    networks:
+      postgres:
+    env_file:
+      - .env
+
+networks:
+  postgres:

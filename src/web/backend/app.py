@@ -2,7 +2,7 @@
 from flask import Flask, render_template
 
 from . import commands, public, user, core, nextcloud, rocket_chat, ldap, actions
-from .extensions import bcrypt, cache, db, login_manager, migrate
+from .extensions import db, login_manager, migrate
 
 
 def create_app(config_object='backend.settings'):
@@ -23,8 +23,6 @@ def create_app(config_object='backend.settings'):
 
 def register_extensions(app):
     """Register Flask extensions."""
-    bcrypt.init_app(app)
-    cache.init_app(app)
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
