@@ -3,7 +3,7 @@ from flask.views import MethodView
 
 from edap import ObjectDoesNotExist
 
-from backend.ldap.utils import EdapMixin
+from ..ldap.utils import EdapMixin
 
 from .utils import get_rocket, RocketMixin, rocket_service
 
@@ -83,7 +83,7 @@ class UserTeamsChatsViewSet(RocketMixin, EdapMixin, MethodView):
 
     def post(self, uid, team_machine_name):
         """ Add user to team chats """
-        from backend.ldap.serializers import edap_team_schema
+        from ..ldap.serializers import edap_team_schema
         team = edap_team_schema.load(self.edap.get_team(team_machine_name)).data
         try:
             franchise, division = team.get_team_components()

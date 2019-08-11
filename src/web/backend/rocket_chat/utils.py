@@ -2,7 +2,7 @@ from flask import g
 
 from rocketchat_API.rocketchat import RocketChat
 
-from backend.settings import ROCKETCHAT_HOST, ROCKETCHAT_PASSWORD, ROCKETCHAT_USER
+from ..settings import ROCKETCHAT_HOST, ROCKETCHAT_PASSWORD, ROCKETCHAT_USER
 
 
 def get_rocket():
