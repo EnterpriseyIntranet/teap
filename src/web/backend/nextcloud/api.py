@@ -6,7 +6,7 @@ from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 from ..utils import EncoderWithBytes
 from ..ldap.utils import EdapMixin
 
-from .utils import create_group_folder, get_nextcloud
+from .utils import get_nextcloud
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
 blueprint.json_encoder = EncoderWithBytes
@@ -140,10 +140,13 @@ class GroupWithFolderViewSet(NextCloudMixin, MethodView):
         if not create_group_res.is_ok:
             return jsonify({"message": "Something went wrong during group creation"}), 400
 
+        # TODO: It is not about just creating a folder, but creating it with right permissions.
+        """
         create_groupfolder_res = create_group_folder(group_name, group_type)
 
         if not create_groupfolder_res:
             return jsonify({"message": "Something went wrong during group folder creation"}), 400
+        """
 
         return jsonify({"message": "Group with group folder successfully created"}), 201
 
@@ -158,10 +161,13 @@ class GroupFolderViewSet(EdapMixin, NextCloudMixin, MethodView):
         if not group_name or not group_type:  # check if all params present
             return jsonify({'message': 'group_name, group_type are required parameters'}), 400
 
+        # TODO: It is not about just creating a folder, but creating it with right permissions.
+        """
         create_groupfolder_res = create_group_folder(group_name, group_type)
 
         if not create_groupfolder_res:
             return jsonify({"message": "Something went wrong during group folder creation"}), 400
+        """
 
         return jsonify({"message": "Group folder successfully created"}), 201
 
