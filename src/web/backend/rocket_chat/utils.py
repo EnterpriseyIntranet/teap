@@ -36,19 +36,21 @@ def log_rocket_action(event_name):
         @wraps(func)
         def inner_wrapper(self, **kwargs):
             res = None
-            success = False
+            status = False
             message = None
             try:
                 res = func(self, **kwargs)
                 if res.status_code == 200:
-                    success = True
+                    status = True
+                else:
+                    message = res.json()['error']
             except Exception as e:
                 logger.exception(e)
-                success = False
+                status = False
                 message = str(e)
             # TODO: what to do with password in create_user method?
             filtered_kwargs = {key: value for key, value in kwargs.items() if key != 'password'}
-            Action.create_event(event=event_name, success=success, message=message, **filtered_kwargs)
+            Action.create_event(event_name=event_name, status=status, message=message, **filtered_kwargs)
             return res
         return inner_wrapper
     return wrapper

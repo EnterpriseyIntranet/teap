@@ -7,7 +7,7 @@ class ApiActionSchema(Schema):
     event_display = fields.Function(lambda obj: obj.get_event_display())
 
     class Meta:
-        fields = ['id', 'event', 'timestamp', 'data', 'message', 'success', 'event_display']
+        fields = ['id', 'event_name', 'timestamp', 'data', 'message', 'status', 'event_display']
         model = Action
 
 

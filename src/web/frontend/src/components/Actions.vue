@@ -1,34 +1,36 @@
 <template>
   <div>
-    <h2>Actions: </h2>
-    <div class="row">
-        <div class="md-5">
-          <ul class="list-group" v-if="actions">
-            <li
-              class="list-group-item"
-              :class="{'list-group-item-success': action.success, 'list-group-item-danger': !action.success}"
-              v-for="action in actions" :key="action.id">
-              <p><strong>{{ action.event_display }}</strong></p>
-              {{ action }} <button v-if="!action.success" @click="retryAction(action)">retry</button>
-            </li>
-          </ul>
-        </div>
-    </div>
+    <div class="container-fluid wrapper">
+      <h2>Actions: </h2>
+      <div class="row justify-content-center">
+        <div style="padding-right: 50px; padding-left: 50px">
+            <ul class="list-group" v-if="actions">
+              <li
+                class="list-group-item"
+                :class="{'list-group-item-success': action.status, 'list-group-item-danger': !action.status}"
+                v-for="action in actions" :key="action.id">
+                <p><strong>{{ action.event_display }}</strong></p>
+                {{ action }} <button v-if="!action.success" @click="retryAction(action)">retry</button>
+              </li>
+            </ul>
+          </div>
+      </div>
 
-    <!-- pagination -->
-    <div v-if="count > 20">
-      <paginate
-        :page-count="pagesCount"
-        :click-handler="changePage"
-        :page-range="2"
-        :margin-pages="2"
-        :prev-text="'Prev'"
-        :next-text="'Next'"
-        :prev-class="'page-item page-link'"
-        :next-class="'page-item page-link'"
-        :container-class="'pagination justify-content-center'"
-        :page-class="'page-item page-link'">
-      </paginate>
+      <!-- pagination -->
+      <div v-if="count > 20">
+        <paginate
+          :page-count="pagesCount"
+          :click-handler="changePage"
+          :page-range="2"
+          :margin-pages="2"
+          :prev-text="'Prev'"
+          :next-text="'Next'"
+          :prev-class="'page-item page-link'"
+          :next-class="'page-item page-link'"
+          :container-class="'pagination justify-content-center'"
+          :page-class="'page-item page-link'">
+        </paginate>
+      </div>
     </div>
   </div>
 </template>
