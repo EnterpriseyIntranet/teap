@@ -118,7 +118,7 @@ class LdapUser(EdapMixin, User):
         Returns (tuple):
             (success (bool), data (dict))
         """
-        rocket_res = rocket_service.create_user(self.uid, password, self.mail, self.given_name)
+        rocket_res = rocket_service.create_user(username=self.uid, password=password, email=self.mail, name=self.given_name)
         return rocket_res.json()
 
     def delete_chat_account(self):
