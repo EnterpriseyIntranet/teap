@@ -53,6 +53,9 @@ class RocketChatService(RocketMixin):
         """
         return self.rocket.channels_create(channel_name)
 
+    def delete_user(self, user_id):
+        return self.rocket.users_delete(user_id)
+
     def get_channel_by_name(self, channel_name):
         """ Get rocket channel json object by it's name """
         query = '{{"fname": {{"$eq": "{channel_name}"}}}}'.format(channel_name=channel_name)

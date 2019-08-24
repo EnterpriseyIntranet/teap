@@ -64,7 +64,7 @@ class User:
         self.divisions = divisions
         self.teams = teams
 
-    def delete_user(self, *args, **kwargs):
+    def delete(self, *args, **kwargs):
         pass
 
     def add_user_to_group(self, *args, **kwargs):
@@ -97,6 +97,18 @@ class LdapUser(EdapMixin, User):
             'rocket': rocket_data
         }
 
+    def delete(self):
+        self.remove_from_all_groups()
+        res = self.edap.delete_user(self.uid)
+        self.delete_chat_account()
+        return res
+
+    def remove_from_all_groups(self):
+        """ Remove user from all ldap groups """
+        user_groups = self.edap.get_user_groups(self.uid)
+        for each in user_groups:
+            self.edap.remove_uid_member_of(self.uid, each['fqdn'])
+
     def create_chat_account(self, password):
         """
         Create chat account for user
@@ -108,6 +120,12 @@ class LdapUser(EdapMixin, User):
         """
         rocket_res = rocket_service.create_user(self.uid, password, self.mail, self.given_name)
         return rocket_res.json()
+
+    def delete_chat_account(self):
+        """ Delete user's chat account """
+        rocket_user = rocket_service.get_user_by_username(self.uid)
+        if rocket_user and rocket_user.get('_id'):
+            return rocket_service.delete_user(rocket_user['_id'])
 
     def get_teams(self):
         """ Get teams where user is a member """
