@@ -29,7 +29,6 @@
 
         <modal name="remove">
             <p>Delete user</p>
-            <p>Delete empty groups? <input v-model="deleteEmptyGroups" type="checkbox"/></p>
             <button @click="deleteUser()">Delete</button>
             <button @click="$modal.hide('remove')">Cancel</button>
         </modal>
@@ -60,8 +59,7 @@ export default {
   },
   data () {
     return {
-      user: null,
-      deleteEmptyGroups: false
+      user: null
     }
   },
 
@@ -211,10 +209,7 @@ export default {
     },
 
     deleteUser () {
-      let requests = [LdapUsersService.delete(this.user.id)]
-      if (this.deleteEmptyGroups) {
-        requests.push(NxcGroupsService.deleteEmpty({groups: this.user.groups}))
-      }
+      let requests = [LdapUsersService.delete(this.user.uid)]
       axios.all(requests)
         .then(axios.spread((acct, perms) => {
           this.$router.push({name: 'home'})
