@@ -23,8 +23,9 @@ class BaseLdapSchema(Schema):
         return data
 
     @pre_load
-    def pre_load_unpack(self, data):
+    def pre_load_unpack(self, data, ** kwargs):
         """ Unpack data """
+        assert not kwargs.get("many"), "We expect to unpack only one-by-one"
         return self.unpack_data(data)
 
     def dump(self, *args, **kwargs):
