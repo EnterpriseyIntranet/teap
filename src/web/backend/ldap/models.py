@@ -82,7 +82,7 @@ class LdapUser(EdapMixin, User):
 
     def add_to_edap(self, password):
         """ Create user entity in ldap """
-        return self.edap.add_user(self.uid, self.given_name, self.surname, password)
+        return self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail)
 
     def add_to_everybody_team(self):
         """ Add user to everybody team in edap """
