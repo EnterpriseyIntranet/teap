@@ -71,7 +71,8 @@ class UserRetrieveViewSet(EdapMixin,
         """ Delete user """
         result = dict(success=True)
         try:
-            self.edap.delete_user(username)
+            user = edap_user_schema.load(self.edap.get_user(username)).data
+            user.delete()
         except Exception as exc:
             result['success'] = False
             result['message'] = str(exc)
