@@ -1,36 +1,34 @@
 # Everything needed in production
 
 # Flask
-Flask
-MarkupSafe
-Werkzeug
-Jinja2
-itsdangerous
-click
+Flask==1.*
+click==7.*
 
 # Database
-Flask-SQLAlchemy
-psycopg2
-SQLAlchemy
+Flask-SQLAlchemy==2.*
 
 # Migrations
-Flask-Migrate
+Flask-Migrate==2.*
 
 # Forms
-Flask-WTF
-WTForms
+Flask-WTF==0.*
+WTForms==2.*
 
 # Flask-restful
-flask-restful
+flask-restful==0.*
+marshmallow==3.*
 
 # Deployment
-gunicorn
+gunicorn==19.*
 
 # Auth
-Flask-Login
+Flask-Login==0.*
 
 # Environment variable parsing
-environs
+environs==5.*
+
+# Rocket chat
+rocketchat_API==0.*
 
 # Nextcloud
 -e git://github.com/EnterpriseyIntranet/nextcloud-API#egg=nextcloud
@@ -38,5 +36,3 @@ environs
 # EDAP
 -e git://github.com/EnterpriseyIntranet/edap#egg=edap
 
-# Rocket chat
-rocketchat_API
