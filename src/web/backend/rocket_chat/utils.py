@@ -1,6 +1,12 @@
+import logging
+from functools import wraps
+
 from flask import g, current_app
 
 from rocketchat_API.rocketchat import RocketChat
+from ..actions.models import Action
+
+logger = logging.getLogger()
 
 
 def get_rocket():
@@ -25,8 +31,34 @@ class RocketMixin:
         return get_rocket()
 
 
+def log_rocket_action(event_name):
+    def wrapper(func):
+        @wraps(func)
+        def inner_wrapper(self, **kwargs):
+            res = None
+            status = False
+            message = None
+            try:
+                res = func(self, **kwargs)
+                if res.status_code == 200:
+                    status = True
+                else:
+                    message = res.json()['error']
+            except Exception as e:
+                logger.exception(e)
+                status = False
+                message = str(e)
+            # TODO: what to do with password in create_user method?
+            filtered_kwargs = {key: value for key, value in kwargs.items() if key != 'password'}
+            Action.create_event(event_name=event_name, status=status, message=message, **filtered_kwargs)
+            return res
+        return inner_wrapper
+    return wrapper
+
+
 class RocketChatService(RocketMixin):
 
+    @log_rocket_action(event_name=Action.CREATE_ROCKET_USER)
     def create_user(self, username, password, email, name):
         """
         Create user
@@ -42,6 +74,7 @@ class RocketChatService(RocketMixin):
         """
         return self.rocket.users_create(email, name, password, username, requirePasswordChange=True)
 
+    @log_rocket_action(event_name=Action.CREATE_ROCKET_CHANNEL)
     def create_channel(self, channel_name):
         """
         Create channel
@@ -52,6 +85,10 @@ class RocketChatService(RocketMixin):
 
         """
         return self.rocket.channels_create(channel_name)
+
+    @log_rocket_action(event_name=Action.INVITE_USER_TO_CHANNEL)
+    def invite_user_to_channel(self, rocket_channel, rocket_user):
+        return self.rocket.channels_invite(rocket_channel, rocket_user)
 
     def delete_user(self, user_id):
         return self.rocket.users_delete(user_id)

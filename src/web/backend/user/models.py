@@ -4,7 +4,6 @@ import datetime as dt
 from flask_login import UserMixin
 
 from ..database import Column, Model, SurrogatePK, db, reference_col, relationship
-from ..extensions import bcrypt
 
 
 class Role(SurrogatePK, Model):
@@ -45,14 +44,6 @@ class User(UserMixin, SurrogatePK, Model):
             self.set_password(password)
         else:
             self.password = None
-
-    def set_password(self, password):
-        """Set password."""
-        self.password = bcrypt.generate_password_hash(password)
-
-    def check_password(self, value):
-        """Check password."""
-        return bcrypt.check_password_hash(self.password, value)
 
     @property
     def full_name(self):

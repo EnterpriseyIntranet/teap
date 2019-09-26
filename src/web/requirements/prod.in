@@ -20,15 +20,14 @@ Flask-Migrate
 Flask-WTF
 WTForms
 
+# Flask-restful
+flask-restful
+
 # Deployment
 gunicorn
 
 # Auth
 Flask-Login
-Flask-Bcrypt
-
-# Caching
-Flask-Caching
 
 # Environment variable parsing
 environs
