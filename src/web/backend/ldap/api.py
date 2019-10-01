@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask.views import MethodView
 from edap import ObjectDoesNotExist, ConstraintError, MultipleObjectsFound
+from marshmallow import ValidationError
 
 from ..utils import EncoderWithBytes
 from .serializers import edap_user_schema, edap_users_schema, edap_franchise_schema, edap_franchises_schema, \
@@ -8,7 +9,7 @@ from .serializers import edap_user_schema, edap_users_schema, edap_franchise_sch
 from .api_serializers import api_franchise_schema, api_user_schema, api_users_schema, api_franchises_schema, \
     api_divisions_schema, api_teams_schema
 
-from .models import LdapDivision, LdapFranchise
+from .models import LdapDivision, LdapFranchise, LdapUser
 from .utils import get_config_divisions, merge_divisions, EdapMixin
 
 blueprint = Blueprint('divisions_api', __name__, url_prefix='/api/ldap/')
@@ -25,19 +26,19 @@ class UserListViewSet(EdapMixin, MethodView):
     def get(self):
         """ List users """
         res = self.edap.get_users()
-        data = edap_users_schema.load(res).data
-        return jsonify(api_users_schema.dump(data).data)
+        data = edap_users_schema.load(res)
+        return jsonify(api_users_schema.dump(data))
 
     def post(self):
         """ Create user """
-        username = request.json.get('uid')
-        password = request.json.get('password')
-        name = request.json.get('name')
-        surname = request.json.get('surname')
-        if not all([username, password, name, surname]):
-            return jsonify({'message': 'username, password, name, surname fields are required'}), 400
 
-        user = api_user_schema.load(request.json).data
+        try:
+            user_data = api_user_schema.load(request.json)
+        except ValidationError as err:
+            return jsonify(err.messages), 400
+
+        password = user_data.pop('password')
+        user = LdapUser(**user_data)
         try:
             res = user.create(password=password)
         except ConstraintError as e:
@@ -52,18 +53,18 @@ class UserRetrieveViewSet(EdapMixin,
     def get(self, username):
         """ List users """
         try:
-            user = edap_user_schema.load(self.edap.get_user(username)).data
+            user = edap_user_schema.load(self.edap.get_user(username))
         except MultipleObjectsFound:
             return jsonify({'message': 'More than 1 user found'}), 409
         except ObjectDoesNotExist:
             return jsonify({'message': 'User does not exist'}), 404
         user_groups = self.edap.get_user_groups(username)
         user = {
-            **api_user_schema.dump(user).data,
+            **api_user_schema.dump(user),
             "groups": [group for group in user_groups],
-            "franchises": api_franchises_schema.dump(user.get_franchises()).data,
-            "divisions": api_divisions_schema.dump(user.get_divisions()).data,
-            "teams": api_teams_schema.dump(user.get_teams()).data
+            "franchises": api_franchises_schema.dump(user.get_franchises()),
+            "divisions": api_divisions_schema.dump(user.get_divisions()),
+            "teams": api_teams_schema.dump(user.get_teams())
         }
         return jsonify(user)
 
@@ -71,7 +72,7 @@ class UserRetrieveViewSet(EdapMixin,
         """ Delete user """
         result = dict(success=True)
         try:
-            user = edap_user_schema.load(self.edap.get_user(username)).data
+            user = edap_user_schema.load(self.edap.get_user(username))
             user.delete()
         except Exception as exc:
             result['success'] = False
@@ -135,8 +136,8 @@ class DivisionsViewSet(EdapMixin, MethodView):
         """ Get divisions from ldap """
         query = request.args.get('query')
         search = f"description={query}*" if query else ""
-        ldap_divisions = edap_divisions_schema.load(self.edap.get_divisions(search)).data
-        return jsonify(api_divisions_schema.dump(ldap_divisions).data)
+        ldap_divisions = edap_divisions_schema.load(self.edap.get_divisions(search))
+        return jsonify(api_divisions_schema.dump(ldap_divisions))
 
 
 class DivisionViewSet(EdapMixin, MethodView):
@@ -151,11 +152,11 @@ class FranchisesViewSet(EdapMixin, MethodView):
     def get(self):
         query = request.args.get('query')
         search = f"description={query}*" if query else ""
-        franchises = edap_franchises_schema.load(self.edap.get_franchises(search)).data
-        return jsonify(api_franchises_schema.dump(franchises).data)
+        franchises = edap_franchises_schema.load(self.edap.get_franchises(search))
+        return jsonify(api_franchises_schema.dump(franchises))
 
     def post(self):
-        franchise = api_franchise_schema.load(request.json).data
+        franchise = api_franchise_schema.load(request.json)
         try:
             create_res = franchise.create()
         except ConstraintError as e:
@@ -176,7 +177,7 @@ def suggest_franchise_name(franchise_machine_name):
 class FranchiseFoldersViewSet(EdapMixin, MethodView):
 
     def post(self, franchise_machine_name):
-        franchise = edap_franchise_schema.load(self.edap.get_franchise(franchise_machine_name)).data
+        franchise = edap_franchise_schema.load(self.edap.get_franchise(franchise_machine_name))
         res = franchise.create_folder(franchise.display_name)
         return jsonify({'success': res}), 201 if res else 500
 
@@ -187,8 +188,8 @@ class TeamsViewSet(EdapMixin, MethodView):
         """ Get teams from ldap """
         query = request.args.get('query')
         search = f"description={query}*" if query else ""
-        ldap_teams = edap_teams_schema.load(self.edap.get_teams(search)).data
-        return jsonify(api_teams_schema.dump(ldap_teams).data)
+        ldap_teams = edap_teams_schema.load(self.edap.get_teams(search))
+        return jsonify(api_teams_schema.dump(ldap_teams))
 
 
 class TeamViewSet(EdapMixin, MethodView):
@@ -203,14 +204,14 @@ class UserFranchisesViewSet(EdapMixin, MethodView):
 
     def post(self, uid):
         """ add user to franchise """
-        user = edap_user_schema.load(self.edap.get_user(uid)).data  # to check if user exists, or return 404
+        user = edap_user_schema.load(self.edap.get_user(uid))  # to check if user exists, or return 404
         machine_name = request.json.get('machineName')
-        franchise = edap_franchise_schema.load(self.edap.get_franchise(machine_name)).data
+        franchise = edap_franchise_schema.load(self.edap.get_franchise(machine_name))
         franchise.add_user(uid)
         return jsonify({'message': 'success'}), 200
 
     def delete(self, uid):
-        user = edap_user_schema.load(self.edap.get_user(uid)).data
+        user = edap_user_schema.load(self.edap.get_user(uid))
         machine_name = request.json.get('machineName')
         user.remove_from_franchise(machine_name)
         return jsonify({'message': 'success'}), 202
@@ -220,14 +221,14 @@ class UserDivisionsViewSet(EdapMixin, MethodView):
 
     def post(self, uid):
         """ add user to team """
-        user = edap_user_schema.load(self.edap.get_user(uid)).data  # to check if user exists, or return 404
+        user = edap_user_schema.load(self.edap.get_user(uid))  # to check if user exists, or return 404
         machine_name = request.json.get('machineName')
-        division = edap_division_schema.load(self.edap.get_division(machine_name)).data
+        division = edap_division_schema.load(self.edap.get_division(machine_name))
         division.add_user(uid)
         return jsonify({'message': 'success'}), 200
 
     def delete(self, uid):
-        user = edap_user_schema.load(self.edap.get_user(uid)).data
+        user = edap_user_schema.load(self.edap.get_user(uid))
         machine_name = request.json.get('machineName')
         user.remove_from_division(machine_name)
         return jsonify({'message': 'success'}), 202
@@ -237,13 +238,13 @@ class UserTeamsViewSet(EdapMixin, MethodView):
 
     def post(self, uid):
         """ add user to team """
-        user = edap_user_schema.load(self.edap.get_user(uid)).data
+        user = edap_user_schema.load(self.edap.get_user(uid))
         machine_name = request.json.get('machineName')
         user.add_to_team(machine_name)
         return jsonify({'message': 'success'}), 200
 
     def delete(self, uid):
-        user = edap_user_schema.load(self.edap.get_user(uid)).data
+        user = edap_user_schema.load(self.edap.get_user(uid))
         machine_name = request.json.get('machineName')
         user.remove_from_team(machine_name)
         return jsonify({'message': 'success'}), 202

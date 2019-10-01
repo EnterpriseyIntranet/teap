@@ -131,15 +131,15 @@ class LdapUser(EdapMixin, User):
         """ Get teams where user is a member """
         from .serializers import edap_teams_schema
         user_teams = self.edap.get_teams(f'memberUid={self.uid}')
-        return edap_teams_schema.load(user_teams).data
+        return edap_teams_schema.load(user_teams)
 
     def add_to_team(self, team_machine_name):
         """ Add user to team and to respective franchise and division groups """
         from .serializers import edap_franchise_schema, edap_division_schema
         self.edap.make_user_member_of_team(self.uid, team_machine_name)
         franchise, division = self.edap.get_team_component_units(team_machine_name)
-        franchise = edap_franchise_schema.load(franchise).data
-        division = edap_division_schema.load(division).data
+        franchise = edap_franchise_schema.load(franchise)
+        division = edap_division_schema.load(division)
         franchise.add_user(self.uid)
         division.add_user(self.uid)
 
@@ -150,7 +150,7 @@ class LdapUser(EdapMixin, User):
     def get_franchises(self):
         from .serializers import edap_franchises_schema
         franchises_raw = self.edap.get_franchises(f'memberUid={self.uid}')
-        return edap_franchises_schema.load(franchises_raw).data
+        return edap_franchises_schema.load(franchises_raw)
 
     def remove_from_franchise(self, franchise_machine_name):
         """ Remove user from franchise """
@@ -159,16 +159,11 @@ class LdapUser(EdapMixin, User):
     def get_divisions(self):
         from .serializers import edap_divisions_schema
         divisions_raw = self.edap.get_divisions(f'memberUid={self.uid}')
-        return edap_divisions_schema.load(divisions_raw).data
+        return edap_divisions_schema.load(divisions_raw)
 
     def remove_from_division(self, division_machine_name):
         """ Remove user from division """
         self.edap.remove_uid_member_of_division(self.uid, division_machine_name)
-
-    def get_teams(self):
-        from .serializers import edap_teams_schema
-        teams_raw = self.edap.get_teams(f'memberUid={self.uid}')
-        return edap_teams_schema.load(teams_raw).data
 
 
 class Franchise(GroupChatMixin, GroupFolderMixin):
@@ -263,7 +258,7 @@ class LdapFranchise(EdapMixin, Franchise):
         Should be called when new Franchise is created
         """
         from .serializers import edap_divisions_schema
-        divisions = edap_divisions_schema.load(self.edap.get_divisions()).data
+        divisions = edap_divisions_schema.load(self.edap.get_divisions())
         for division in divisions:
             machine_name = self.edap.make_team_machine_name(self.machine_name, division.machine_name)
             display_name = self.edap.make_team_display_name(self.display_name, division.display_name)
@@ -353,7 +348,7 @@ class LdapDivision(EdapMixin, Division):
          Should be called when new Franchise is created
          """
         from .serializers import edap_franchises_schema
-        franchises = edap_franchises_schema.load(self.edap.get_franchises()).data
+        franchises = edap_franchises_schema.load(self.edap.get_franchises())
         for franchise in franchises:
             machine_name = self.edap.make_team_machine_name(franchise.machine_name, self.machine_name)
             display_name = self.edap.make_team_display_name(franchise.display_name, self.display_name)
@@ -388,7 +383,7 @@ class LdapTeam(EdapMixin, Team):
     def get_team_components(self):
         from .serializers import edap_franchise_schema, edap_division_schema
         franchise_json, division_json = self.edap.get_team_component_units(self.machine_name)
-        return edap_franchise_schema.load(franchise_json).data, edap_division_schema.load(division_json).data
+        return edap_franchise_schema.load(franchise_json), edap_division_schema.load(division_json)
 
     @staticmethod
     def get_everybody_team():
@@ -400,4 +395,4 @@ class LdapTeam(EdapMixin, Team):
         except ObjectDoesNotExist:
             edap.create_team(LdapTeam.EVERYBODY_MACHINE_NAME, LdapTeam.EVERYBODY_DISPLAY_NAME)
             everybody_team = edap.get_team(LdapTeam.EVERYBODY_MACHINE_NAME)
-        return edap_team_schema.load(everybody_team).data
+        return edap_team_schema.load(everybody_team)

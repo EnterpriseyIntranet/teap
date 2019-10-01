@@ -85,7 +85,7 @@ class UserTeamsChatsViewSet(RocketMixin, EdapMixin, MethodView):
     def post(self, uid, team_machine_name):
         """ Add user to team chats """
         from ..ldap.serializers import edap_team_schema
-        team = edap_team_schema.load(self.edap.get_team(team_machine_name)).data
+        team = edap_team_schema.load(self.edap.get_team(team_machine_name))
         try:
             franchise, division = team.get_team_components()
         except ObjectDoesNotExist:

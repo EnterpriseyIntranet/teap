@@ -20,7 +20,7 @@ class ActionsList(Resource):
         actions_qs = Action.query.filter()
         actions = actions_qs.offset((args.get('page') - 1) * ACTIONS_PER_PAGE).limit(ACTIONS_PER_PAGE)
         return {
-            'data': api_actions_schema.dump(actions).data,
+            'data': api_actions_schema.dump(actions),
             'count': actions_qs.count()
         }
 

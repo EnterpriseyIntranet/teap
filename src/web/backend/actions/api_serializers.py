@@ -8,7 +8,6 @@ class ApiActionSchema(Schema):
 
     class Meta:
         fields = ['id', 'event_name', 'timestamp', 'data', 'message', 'status', 'event_display']
-        model = Action
 
 
 api_actions_schema = ApiActionSchema(many=True)
