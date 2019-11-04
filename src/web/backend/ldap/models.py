@@ -4,7 +4,7 @@ from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap
 from ..nextcloud.utils import get_nextcloud, get_group_folder
-from ..rocket_chat.utils import rocket_service
+from ..rocket_chat.utils import rocket_service, sanitize_room_name
 
 # TODO: separate layer with edap from data models
 NEXTCLOUD_ADMIN_GROUP = "admin"
@@ -188,16 +188,9 @@ class Franchise(GroupChatMixin, GroupFolderMixin):
         self.machine_name = machine_name
         self.display_name = display_name
 
-    def _sanitize_room_name(self):
-        import re
-        name = re.sub(" ", "-", self.display_name)
-        name = re.sub("&", "and", name)
-        return name
-
     @property
     def chat_name(self):
-        room_name = self._sanitize_room_name()
-        return f'Franchise-{room_name}'.replace(' ', '-')
+        return sanitize_room_name(f'Franchise-{self.display_name}')
 
     @property
     def folder_path(self):
@@ -342,7 +335,7 @@ class Division(GroupChatMixin, GroupFolderMixin):
 
     @property
     def chat_name(self):
-        return f'Division-{self.display_name}'.replace(' ', '-')
+        return sanitize_room_name(f'Division-{self.display_name}')
 
     @property
     def folder_path(self):

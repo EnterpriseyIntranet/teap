@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+import re
 
 from flask import g, current_app
 
@@ -22,6 +23,12 @@ def get_rocket():
             g.rocket = None
             g.rocket_exception = e
     return g.rocket
+
+
+def sanitize_room_name(name):
+    name = re.sub(" ", "-", name)
+    name = re.sub("&", "and", name)
+    return name
 
 
 class RocketMixin:
