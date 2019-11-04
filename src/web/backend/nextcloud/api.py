@@ -113,65 +113,6 @@ class GroupSubadminViewSet(NextCloudMixin, MethodView):
         return self.nxc_response(res), 202
 
 
-class GroupWithFolderViewSet(NextCloudMixin, MethodView):
-
-    def post(self):
-        group_name = request.json.get('group_name')
-        group_type = request.json.get('group_type')
-
-        if not group_name or not group_type:  # check if all params present
-            return jsonify({'message': 'group_name, group_type are required parameters'}), 400
-
-        if group_type.lower() not in ALLOWED_GROUP_TYPES:  # check if group type in list of allowed types
-            return jsonify({"message": "Not allowed group type"}), 400
-
-        # check division group name
-        if group_type.lower() == 'divisions' and not group_name.lower().startswith("division"):
-            return jsonify({"message": 'Division group name must start with "Division"'}), 400
-
-        # check countries group name
-        if group_type.lower() == 'countries' and not group_name.lower().startswith("country"):
-            return jsonify({"message": 'Country group name must start with "Country"'}), 400
-
-        if self.nextcloud.get_group(group_name).is_ok:  # check if group with such name doesn't exist
-            return jsonify({"message": "Group with this name already exists"}), 400
-
-        create_group_res = self.nextcloud.add_group(group_name)  # create group
-        if not create_group_res.is_ok:
-            return jsonify({"message": "Something went wrong during group creation"}), 400
-
-        # TODO: It is not about just creating a folder, but creating it with right permissions.
-        """
-        create_groupfolder_res = create_group_folder(group_name, group_type)
-
-        if not create_groupfolder_res:
-            return jsonify({"message": "Something went wrong during group folder creation"}), 400
-        """
-
-        return jsonify({"message": "Group with group folder successfully created"}), 201
-
-
-class GroupFolderViewSet(EdapMixin, NextCloudMixin, MethodView):
-
-    def post(self):
-        """ Create group folder for given group """
-        group_name = request.json.get('group_name')
-        group_type = request.json.get('group_type')
-
-        if not group_name or not group_type:  # check if all params present
-            return jsonify({'message': 'group_name, group_type are required parameters'}), 400
-
-        # TODO: It is not about just creating a folder, but creating it with right permissions.
-        """
-        create_groupfolder_res = create_group_folder(group_name, group_type)
-
-        if not create_groupfolder_res:
-            return jsonify({"message": "Something went wrong during group folder creation"}), 400
-        """
-
-        return jsonify({"message": "Group folder successfully created"}), 201
-
-
 group_list_view = GroupListViewSet.as_view('groups_api')
 blueprint.add_url_rule('/groups/', view_func=group_list_view, methods=["GET", "POST", "DELETE"])
 
@@ -181,9 +122,3 @@ blueprint.add_url_rule('/groups/<group_name>', view_func=group_view, methods=["G
 group_subadmins_view = GroupSubadminViewSet.as_view('group_subadmins_api')
 blueprint.add_url_rule('/groups/<group_name>/subadmins', view_func=group_view, methods=["POST", "DELETE"])
 blueprint.add_url_rule('/groups/<group_name>/subadmins/<username>', view_func=group_view, methods=["DELETE"])
-
-group_with_folder_view = GroupWithFolderViewSet.as_view('groups_with_folder_api')
-blueprint.add_url_rule('/groups-with-folders', view_func=group_with_folder_view, methods=["POST"])
-
-group_folder_view = GroupFolderViewSet.as_view('groupfolder_api')
-blueprint.add_url_rule('/groupfolder', view_func=group_folder_view, methods=["POST"])
