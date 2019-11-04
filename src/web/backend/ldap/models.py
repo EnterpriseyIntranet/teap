@@ -3,7 +3,7 @@ from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap
-from ..nextcloud.utils import get_nextcloud, get_group_folder
+from ..nextcloud.utils import get_nextcloud, get_group_folder, flush_nextcloud_ldap_cache
 from ..rocket_chat.utils import rocket_service, sanitize_room_name
 
 # TODO: separate layer with edap from data models
@@ -86,16 +86,22 @@ class LdapUser(EdapMixin, User):
 
     def add_to_edap(self, password):
         """ Create user entity in ldap """
-        return self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail)
+        ret = self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail)
+        return ret
 
     def add_to_everybody_team(self):
         """ Add user to everybody team in edap """
         everybody_team = LdapTeam.get_everybody_team()
-        return self.edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
+        ret = self.edap.make_user_member_of_team(self.uid, everybody_team.machine_name)
+        return ret
 
     def create(self, password):
         self.add_to_edap(password)
         self.add_to_everybody_team()
+
+        nxc = get_nextcloud()
+        flush_nextcloud_ldap_cache(nxc)
+
         rocket_data = self.create_chat_account(password)
         return {
             'rocket': rocket_data

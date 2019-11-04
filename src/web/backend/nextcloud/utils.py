@@ -17,6 +17,11 @@ def get_nextcloud():
     return g.nextcloud
 
 
+def flush_nextcloud_ldap_cache(n):
+    config_id = n.get_ldap_lowest_existing_config_id()
+    n.ldap_cache_flush(config_id)
+
+
 def get_group_folder(mount_point):
     """
     Get nextcloud folder id by mount point

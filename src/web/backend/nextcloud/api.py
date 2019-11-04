@@ -6,7 +6,7 @@ from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 from ..utils import EncoderWithBytes
 from ..ldap.utils import EdapMixin
 
-from .utils import get_nextcloud
+from .utils import create_group_folder, get_nextcloud, flush_nextcloud_ldap_cache
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
 blueprint.json_encoder = EncoderWithBytes
@@ -46,12 +46,13 @@ class GroupListViewSet(NextCloudMixin,
         if not group_name:
             return jsonify({'message': 'group_name is required'}), 400
         res = self.nextcloud.add_group(group_name)
+        flush_nextcloud_ldap_cache(self.nextcloud)
         return self.nxc_response(res), 201
 
     def delete(self):
         """ Delete group """
         groups = request.json.get('groups')
-        empty = request.json.get('empty') #  flag to delete only empty groups
+        empty = request.json.get('empty')  # flag to delete only empty groups
 
         for group_name in groups:
             group = self.nextcloud.get_group(group_name)
@@ -64,6 +65,7 @@ class GroupListViewSet(NextCloudMixin,
                     self.nextcloud.delete_group(group_name)
             else:
                 self.nextcloud.delete_group(group_name)
+        flush_nextcloud_ldap_cache(self.nextcloud)
 
         return jsonify({"message": "ok"}), 202
 
@@ -85,6 +87,7 @@ class GroupViewSet(NextCloudMixin, EdapMixin, MethodView):
     def delete(self, group_name, username=None):
         """ Delete group """
         res = self.nextcloud.delete_group(group_name)
+        flush_nextcloud_ldap_cache(self.nextcloud)
         return self.nxc_response(res), 202
 
 
