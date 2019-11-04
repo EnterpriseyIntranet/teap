@@ -442,6 +442,14 @@ class Team:
         self.display_name = display_name
 
 
+STRING_OPERATIONS = dict(
+        lowercase=lambda s: s.lower(),
+        uppercase=lambda s: s.upper(),
+        capitalize=lambda s: s.capitalize(),
+        noop=lambda s: s,
+    )
+
+
 class LdapTeam(EdapMixin, Team):
 
     EVERYBODY_MACHINE_NAME = 'everybody'
@@ -450,6 +458,10 @@ class LdapTeam(EdapMixin, Team):
 
     def __init__(self, fqdn=None, *args, **kwargs):
         self.fqdn = fqdn
+        self.n_conversion_fun = STRING_OPERATIONS["noop"]
+        if "nextcloud_string_operation" in kwargs:
+            self.n_conversion_fun = STRING_OPERATIONS[kwargs["nextcloud_string_operation"]]
+        self.EVERYBODY_NEXTCLOUD_GROUP_ID = self.n_conversion_fun(self.EVERYBODY_MACHINE_NAME)
         super(LdapTeam, self).__init__(*args, **kwargs)
 
     def __repr__(self):
