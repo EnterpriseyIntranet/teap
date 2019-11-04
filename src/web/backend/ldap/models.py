@@ -3,10 +3,11 @@ from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap
-from ..nextcloud.utils import get_nextcloud, get_group_folder, create_group_folder
-from ..rocket_chat.utils import rocket_service
+from ..nextcloud.utils import get_nextcloud, get_group_folder
+from ..rocket_chat.utils import rocket_service, sanitize_room_name
 
 # TODO: separate layer with edap from data models
+NEXTCLOUD_ADMIN_GROUP = "admin"
 
 
 class GroupChatMixin:
@@ -80,6 +81,9 @@ class LdapUser(EdapMixin, User):
     def __repr__(self):
         return f'<LdapUser(fqdn={self.fqdn}, uid={self.uid})>'
 
+    def exists_in_edap(self):
+        return self.edap.user_of_uid_exists(self.uid) > 0
+
     def add_to_edap(self, password):
         """ Create user entity in ldap """
         return self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail)
@@ -133,15 +137,19 @@ class LdapUser(EdapMixin, User):
         user_teams = self.edap.get_teams(f'memberUid={self.uid}')
         return edap_teams_schema.load(user_teams)
 
-    def add_to_team(self, team_machine_name):
-        """ Add user to team and to respective franchise and division groups """
+    def add_user_to_implied_structures(self, team_machine_name):
         from .serializers import edap_franchise_schema, edap_division_schema
-        self.edap.make_user_member_of_team(self.uid, team_machine_name)
         franchise, division = self.edap.get_team_component_units(team_machine_name)
         franchise = edap_franchise_schema.load(franchise)
         division = edap_division_schema.load(division)
         franchise.add_user(self.uid)
         division.add_user(self.uid)
+
+    def add_to_team(self, team_machine_name):
+        """ Add user to team and to respective franchise and division groups """
+        self.edap.make_user_member_of_team(self.uid, team_machine_name)
+
+        self.add_user_to_implied_structures(team_machine_name)
 
     def remove_from_team(self, team_machine_name):
         """ Remove user from team """
@@ -152,6 +160,9 @@ class LdapUser(EdapMixin, User):
         franchises_raw = self.edap.get_franchises(f'memberUid={self.uid}')
         return edap_franchises_schema.load(franchises_raw)
 
+    def ensure_in_franchise(self, franchise_machine_name):
+        self.edap.make_user_member_of_franchise(self.uid, franchise_machine_name)
+
     def remove_from_franchise(self, franchise_machine_name):
         """ Remove user from franchise """
         self.edap.remove_uid_member_of_franchise(self.uid, franchise_machine_name)
@@ -160,6 +171,9 @@ class LdapUser(EdapMixin, User):
         from .serializers import edap_divisions_schema
         divisions_raw = self.edap.get_divisions(f'memberUid={self.uid}')
         return edap_divisions_schema.load(divisions_raw)
+
+    def ensure_in_division(self, division_machine_name):
+        self.edap.make_uid_member_of_division(self.uid, division_machine_name)
 
     def remove_from_division(self, division_machine_name):
         """ Remove user from division """
@@ -176,11 +190,11 @@ class Franchise(GroupChatMixin, GroupFolderMixin):
 
     @property
     def chat_name(self):
-        return f'Franchise-{self.display_name}'.replace(' ', '-')
+        return sanitize_room_name(f'Franchise-{self.display_name}')
 
     @property
     def folder_path(self):
-        return "/".join([Franchise.GROUP_FOLDER, self.display_name])
+        return "/".join([Franchise.GROUP_FOLDER, self.machine_name])
 
     def create_folder(self):
         """
@@ -191,27 +205,43 @@ class Franchise(GroupChatMixin, GroupFolderMixin):
         main_franchises_folder = get_group_folder(Franchise.GROUP_FOLDER)
 
         if not main_franchises_folder:
-            LdapFranchise.create_main_folder()
+            Franchise.create_main_folder()
 
         create_folder_res = nxc.create_group_folder(self.folder_path)
-        grant_access_res = nxc.grant_access_to_group_folder(create_folder_res.data['id'], self.machine_name)
-        grant_everybody_access = nxc.grant_access_to_group_folder(create_folder_res.data['id'],
-                                                                  LdapTeam.EVERYBODY_MACHINE_NAME)
-        nxc.set_permissions_to_group_folder(create_folder_res.data['id'],
-                                            LdapTeam.EVERYBODY_MACHINE_NAME,
-                                            str(NxcPermission.READ.value))
+        folder_id = create_folder_res.data['id']
+
+        grant_access_res = nxc.grant_access_to_group_folder(
+                folder_id, self.machine_name)
+        grant_everybody_access = nxc.grant_access_to_group_folder(
+                folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID)
+        nxc.grant_access_to_group_folder(
+                folder_id, NEXTCLOUD_ADMIN_GROUP)
+
+        nxc.set_permissions_to_group_folder(
+                folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID,
+                str(NxcPermission.READ.value))
+
         return create_folder_res.is_ok and grant_access_res.is_ok and grant_everybody_access.is_ok
 
     @staticmethod
     def create_main_folder():
-        """ Create main 'Franchises' folder in root directory with read rights for 'Everybody' team """
+        """
+        Create main 'Franchises' folder in root directory
+        with read rights for 'Everybody' team
+        """
         nxc = get_nextcloud()
         create_main_folder_res = nxc.create_group_folder(Franchise.GROUP_FOLDER)
+
         main_folder_id = create_main_folder_res.data['id']
-        nxc.grant_access_to_group_folder(main_folder_id, LdapTeam.EVERYBODY_MACHINE_NAME)
-        nxc.set_permissions_to_group_folder(main_folder_id,
-                                            LdapTeam.EVERYBODY_MACHINE_NAME,
-                                            str(NxcPermission.READ.value))
+
+        nxc.grant_access_to_group_folder(
+                main_folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID)
+        nxc.grant_access_to_group_folder(
+                main_folder_id, NEXTCLOUD_ADMIN_GROUP)
+
+        nxc.set_permissions_to_group_folder(
+                main_folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID,
+                str(NxcPermission.READ.value))
 
 
 class LdapFranchise(EdapMixin, Franchise):
@@ -305,14 +335,58 @@ class Division(GroupChatMixin, GroupFolderMixin):
 
     @property
     def chat_name(self):
-        return f'Division-{self.display_name}'.replace(' ', '-')
+        return sanitize_room_name(f'Division-{self.display_name}')
 
     @property
     def folder_path(self):
-        return "/".join(['Divisions', self.display_name])
+        return "/".join([self.GROUP_FOLDER, self.display_name])
 
     def create_folder(self):
-        return create_group_folder(self.display_name, self.GROUP_FOLDER)
+        """
+        Create subfolder in 'Divisions' folder with read-write access to members of Division
+        and read access for 'Everybody' team
+        """
+        nxc = get_nextcloud()
+        main_folder = get_group_folder(Division.GROUP_FOLDER)
+
+        if not main_folder:
+            Division.create_main_folder()
+
+        create_folder_res = nxc.create_group_folder(self.folder_path)
+        folder_id = create_folder_res.data['id']
+
+        grant_access_res = nxc.grant_access_to_group_folder(
+                folder_id, self.machine_name)
+        grant_everybody_access = nxc.grant_access_to_group_folder(
+                folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID)
+        nxc.grant_access_to_group_folder(
+                folder_id, NEXTCLOUD_ADMIN_GROUP)
+
+        nxc.set_permissions_to_group_folder(
+                folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID,
+                str(NxcPermission.READ.value))
+
+        return create_folder_res.is_ok and grant_access_res.is_ok and grant_everybody_access.is_ok
+
+    @staticmethod
+    def create_main_folder():
+        """
+        Create main 'Divisions' folder in root directory
+        with read rights for 'Everybody' team
+        """
+        nxc = get_nextcloud()
+        create_main_folder_res = nxc.create_group_folder(Division.GROUP_FOLDER)
+
+        main_folder_id = create_main_folder_res.data['id']
+
+        nxc.grant_access_to_group_folder(
+                main_folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID)
+        nxc.grant_access_to_group_folder(
+                main_folder_id, NEXTCLOUD_ADMIN_GROUP)
+
+        nxc.set_permissions_to_group_folder(
+                main_folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID,
+                str(NxcPermission.READ.value))
 
 
 class LdapDivision(EdapMixin, Division):
@@ -368,13 +442,26 @@ class Team:
         self.display_name = display_name
 
 
+STRING_OPERATIONS = dict(
+        lowercase=lambda s: s.lower(),
+        uppercase=lambda s: s.upper(),
+        capitalize=lambda s: s.capitalize(),
+        noop=lambda s: s,
+    )
+
+
 class LdapTeam(EdapMixin, Team):
 
     EVERYBODY_MACHINE_NAME = 'everybody'
     EVERYBODY_DISPLAY_NAME = 'Everybody'
+    EVERYBODY_NEXTCLOUD_GROUP_ID = 'Everybody'
 
     def __init__(self, fqdn=None, *args, **kwargs):
         self.fqdn = fqdn
+        self.n_conversion_fun = STRING_OPERATIONS["noop"]
+        if "nextcloud_string_operation" in kwargs:
+            self.n_conversion_fun = STRING_OPERATIONS[kwargs["nextcloud_string_operation"]]
+        self.EVERYBODY_NEXTCLOUD_GROUP_ID = self.n_conversion_fun(self.EVERYBODY_MACHINE_NAME)
         super(LdapTeam, self).__init__(*args, **kwargs)
 
     def __repr__(self):
