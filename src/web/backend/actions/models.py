@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from backend.database import db, Column, Model, SurrogatePK
+from ..database import db, Column, Model, SurrogatePK
 
 
 class ActionABC:
