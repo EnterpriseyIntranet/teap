@@ -55,7 +55,7 @@ class GroupFolderMixin:
 
 class User:
     def __init__(self, uid=None, given_name=None, mail=None, surname=None, groups=None, franchises=None, divisions=None,
-                 teams=None):
+                 teams=None, picture_bytes=b""):
         self.uid = uid
         self.given_name = given_name
         self.mail = mail
@@ -64,6 +64,7 @@ class User:
         self.franchises = franchises
         self.divisions = divisions
         self.teams = teams
+        self.picture_bytes = picture_bytes
 
     def delete(self, *args, **kwargs):
         pass
@@ -86,7 +87,7 @@ class LdapUser(EdapMixin, User):
 
     def add_to_edap(self, password):
         """ Create user entity in ldap """
-        ret = self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail)
+        ret = self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail, self.picture_bytes)
         return ret
 
     def add_to_everybody_team(self):
