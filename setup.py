@@ -9,7 +9,7 @@ with open(os.path.join(SETUPDIR, 'README.md'), 'r') as f:
 PKGNAME = "teap"
 packages = [f"{PKGNAME}"]
 
-for p in setuptools.find_packages(where="src/web", exclude=["tests"]):
+for p in setuptools.find_packages(where="src/web/backend", exclude=["tests"]):
     packages.append(f"{PKGNAME}.{p}")
 
 setuptools.setup(
@@ -21,7 +21,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/EnterpriseyIntranet/teap",
     packages=packages,
-    package_dir={"teap": "src/web"},
+    package_dir={"teap": "src/web/backend"},
     include_package_data=True,
     classifiers=[
         'Programming Language :: Python :: 3.6',
