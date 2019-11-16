@@ -42,7 +42,7 @@ def get_group_folder(mount_point):
 
 def check_consistency():
     """ Check if all required system objects exist in Edap """
-    from backend.ldap.models import Franchise, Division
+    from ..ldap.models import Franchise, Division
     nxc = get_nextcloud()
 
     main_franchises_folder_id = get_group_folder(Franchise.GROUP_FOLDER)

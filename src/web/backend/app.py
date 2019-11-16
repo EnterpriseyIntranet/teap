@@ -18,14 +18,21 @@ def create_app(config_object='backend.settings'):
     register_errorhandlers(app)
     register_shellcontext(app)
     register_commands(app)
+    initialize_modules(app)
     return app
+
+
+def initialize_modules(app):
+    rocket_chat.initialize_module(app)
+    return None
 
 
 def register_extensions(app):
     """Register Flask extensions."""
-    db.init_app(app)
+    if not app.config["SQLALCHEMY_DATABASE_URI"]:
+        db.init_app(app)
+        migrate.init_app(app, db)
     login_manager.init_app(app)
-    migrate.init_app(app, db)
     return None
 
 
