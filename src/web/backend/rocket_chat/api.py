@@ -5,13 +5,13 @@ from edap import ObjectDoesNotExist
 
 from ..ldap.utils import EdapMixin
 
-from .utils import get_rocket, RocketMixin, rocket_service
+from . import utils as rutils
 
 blueprint = Blueprint('rocket_chat_api', __name__, url_prefix='/api/rocket')
 
 
 def check_rocket_authorized():
-    rocket = get_rocket()
+    rocket = rutils.get_rocket()
     if not rocket:
         rocket_exception = g.rocket_exception
         return jsonify({
@@ -31,7 +31,7 @@ def create_user():
     if not all([username, password, email, name]):
         return jsonify({"message": "username, password, email, name are required fields"}), 400
 
-    res = rocket_service.create_chat_user(username, password, email, name)
+    res = rutils.rocket_service.create_chat_user(username, password, email, name)
     data = res.json()
 
     if res.status_code == 200 and data.get('success', True):
@@ -44,17 +44,17 @@ def create_user():
 def create_channel():
     channel_name = request.json.get('channel_name')
     channel_name = channel_name.replace(' ', '-')  # TODO: add proper name normalization
-    res = rocket_service.create_chat_channel(channel_name)
+    res = rutils.rocket_service.create_chat_channel(channel_name)
     res_data = res.json()
     return jsonify(res_data), res.status_code
 
 
-class UserRocketChannels(RocketMixin, MethodView):
+class UserRocketChannels(rutils.RocketMixin, MethodView):
 
     def post(self, user_id):
         channel = request.json.get('channel')
-        rocket_user = rocket_service.get_user_by_username(user_id)
-        rocket_channel = rocket_service.get_channel_by_name(channel)
+        rocket_user = rutils.rocket_service.get_user_by_username(user_id)
+        rocket_channel = rutils.rocket_service.get_channel_by_name(channel)
 
         if not rocket_channel:
             return jsonify({'message': 'Rocket channel not found'}), 404
@@ -62,13 +62,13 @@ class UserRocketChannels(RocketMixin, MethodView):
         if not rocket_user:
             return jsonify({'message': 'Rocket user not found'}), 404
 
-        res = rocket_service.invite_user_to_channel(rocket_channel=rocket_channel['_id'],
+        res = rutils.rocket_service.invite_user_to_channel(rocket_channel=rocket_channel['_id'],
                                                     rocket_user=rocket_user['_id'])
         return jsonify(res.json()), res.status_code
 
     def delete(self, user_id, channel):
-        rocket_user = rocket_service.get_user_by_username(user_id)
-        rocket_channel = rocket_service.get_channel_by_name(channel)
+        rocket_user = rutils.rocket_service.get_user_by_username(user_id)
+        rocket_channel = rutils.rocket_service.get_channel_by_name(channel)
 
         if not rocket_channel:
             return jsonify({'message': 'Rocket channel not found'}), 404
@@ -80,7 +80,7 @@ class UserRocketChannels(RocketMixin, MethodView):
         return jsonify({"message": "success"}), 202
 
 
-class UserTeamsChatsViewSet(RocketMixin, EdapMixin, MethodView):
+class UserTeamsChatsViewSet(rutils.RocketMixin, EdapMixin, MethodView):
 
     def post(self, uid, team_machine_name):
         """ Add user to team chats """
@@ -91,17 +91,17 @@ class UserTeamsChatsViewSet(RocketMixin, EdapMixin, MethodView):
         except ObjectDoesNotExist:
             return jsonify({'message': 'Team corresponding franchise or division are not found'}), 404
 
-        user = rocket_service.get_user_by_username(uid)
+        user = rutils.rocket_service.get_user_by_username(uid)
 
-        franchise_channel = rocket_service.get_channel_by_name(franchise.chat_name)
-        division_channel = rocket_service.get_channel_by_name(division.chat_name)
+        franchise_channel = rutils.rocket_service.get_channel_by_name(franchise.chat_name)
+        division_channel = rutils.rocket_service.get_channel_by_name(division.chat_name)
 
         if not all([user, franchise_channel, division_channel]):
             return jsonify({'message': 'Corresponding franchise or division channels not found'}), 400
 
-        franchise_chat_res = rocket_service.invite_user_to_channel(rocket_channel=franchise_channel['_id'],
+        franchise_chat_res = rutils.rocket_service.invite_user_to_channel(rocket_channel=franchise_channel['_id'],
                                                                    rocket_user=user['_id'])
-        division_chat_res = rocket_service.invite_user_to_channel(rocket_channel=division_channel['_id'],
+        division_chat_res = rutils.rocket_service.invite_user_to_channel(rocket_channel=division_channel['_id'],
                                                                   rocket_user=user['_id'])
 
         if franchise_chat_res.status_code != 200:

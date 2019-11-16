@@ -65,7 +65,6 @@ def log_rocket_action(event_name):
 
 class RocketChatService(RocketMixin):
 
-    @log_rocket_action(event_name=Action.CREATE_ROCKET_USER)
     def create_user(self, username, password, email, name):
         """
         Create user
@@ -81,7 +80,6 @@ class RocketChatService(RocketMixin):
         """
         return self.rocket.users_create(email, name, password, username, requirePasswordChange=True)
 
-    @log_rocket_action(event_name=Action.CREATE_ROCKET_CHANNEL)
     def create_channel(self, channel_name):
         """
         Create channel
@@ -93,7 +91,6 @@ class RocketChatService(RocketMixin):
         """
         return self.rocket.channels_create(channel_name)
 
-    @log_rocket_action(event_name=Action.INVITE_USER_TO_CHANNEL)
     def invite_user_to_channel(self, rocket_channel, rocket_user):
         return self.rocket.channels_invite(rocket_channel, rocket_user)
 
@@ -122,4 +119,26 @@ class RocketChatService(RocketMixin):
         return users[0]
 
 
-rocket_service = RocketChatService()
+class LoggingRocketChatService(RocketChatService):
+    @log_rocket_action(event_name=Action.CREATE_ROCKET_USER)
+    def create_user(self, username, password, email, name):
+        return super().create_user(username, password, email, name)
+
+    @log_rocket_action(event_name=Action.CREATE_ROCKET_CHANNEL)
+    def create_channel(self, channel_name):
+        return super().create_channel(channel_name)
+
+    @log_rocket_action(event_name=Action.INVITE_USER_TO_CHANNEL)
+    def invite_user_to_channel(self, rocket_channel, rocket_user):
+        return super().invite_user_to_channel(rocket_channel, rocket_user)
+
+
+def populate_service(logging_enabled):
+    global rocket_service
+    if logging_enabled:
+        rocket_service = LoggingRocketChatService()
+    else:
+        rocket_service = RocketChatService()
+
+
+rocket_service = None

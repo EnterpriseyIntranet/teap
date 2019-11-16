@@ -4,7 +4,7 @@ from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap
 from ..nextcloud.utils import get_nextcloud, get_group_folder, flush_nextcloud_ldap_cache
-from ..rocket_chat.utils import rocket_service, sanitize_room_name
+from ..rocket_chat import utils as rutils
 
 # TODO: separate layer with edap from data models
 NEXTCLOUD_ADMIN_GROUP = "admin"
@@ -22,7 +22,7 @@ class GroupChatMixin:
         Create channel in chat
         Returns (dict):
         """
-        channel_res = rocket_service.create_channel(channel_name=self.chat_name)
+        channel_res = rutils.rocket_service.create_channel(channel_name=self.chat_name)
         return channel_res.json()
 
     def channel_exists(self):
@@ -30,7 +30,7 @@ class GroupChatMixin:
         Check if franchise channel in chat exists
         Returns (bool):
         """
-        return bool(rocket_service.get_channel_by_name(self.chat_name))
+        return bool(rutils.rocket_service.get_channel_by_name(self.chat_name))
 
 
 class GroupFolderMixin:
@@ -129,14 +129,14 @@ class LdapUser(EdapMixin, User):
         Returns (tuple):
             (success (bool), data (dict))
         """
-        rocket_res = rocket_service.create_user(username=self.uid, password=password, email=self.mail, name=self.given_name)
+        rocket_res = rutils.rocket_service.create_user(username=self.uid, password=password, email=self.mail, name=self.given_name)
         return rocket_res.json()
 
     def delete_chat_account(self):
         """ Delete user's chat account """
-        rocket_user = rocket_service.get_user_by_username(self.uid)
+        rocket_user = rutils.rocket_service.get_user_by_username(self.uid)
         if rocket_user and rocket_user.get('_id'):
-            return rocket_service.delete_user(rocket_user['_id'])
+            return rutils.rocket_service.delete_user(rocket_user['_id'])
 
     def get_teams(self):
         """ Get teams where user is a member """
@@ -197,7 +197,7 @@ class Franchise(GroupChatMixin, GroupFolderMixin):
 
     @property
     def chat_name(self):
-        return sanitize_room_name(f'Franchise-{self.display_name}')
+        return rutils.sanitize_room_name(f'Franchise-{self.display_name}')
 
     @property
     def folder_path(self):
@@ -342,7 +342,7 @@ class Division(GroupChatMixin, GroupFolderMixin):
 
     @property
     def chat_name(self):
-        return sanitize_room_name(f'Division-{self.display_name}')
+        return rutils.sanitize_room_name(f'Division-{self.display_name}')
 
     @property
     def folder_path(self):

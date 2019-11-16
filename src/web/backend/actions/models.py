@@ -57,13 +57,13 @@ class ActionABC:
             return self._execute_rocket()
 
     def _execute_rocket(self):
-        from backend.rocket_chat.utils import rocket_service
+        from ..rocket_chat import utils as rutils
         if self.event_name == self.CREATE_ROCKET_USER:
-            return rocket_service.create_user(**self.data)
+            return rutils.rocket_service.create_user(**self.data)
         elif self.event_name == self.CREATE_ROCKET_CHANNEL:
-            return rocket_service.create_channel(**self.data)
+            return rutils.rocket_service.create_channel(**self.data)
         elif self.event_name == self.INVITE_USER_TO_CHANNEL:
-            return rocket_service.invite_user_to_channel(**self.data)
+            return rutils.rocket_service.invite_user_to_channel(**self.data)
 
 
 class Action(SurrogatePK, Model, ActionABC):
