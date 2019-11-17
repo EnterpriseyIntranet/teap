@@ -34,4 +34,4 @@ RUN true \
 EXPOSE 8080
 
 # CMD ["flask", "run", "--host", "0.0.0.0", "--port", "8080"]
-CMD ["gunicorn", "autoapp:app", "-b", ":8080"]
+CMD ["gunicorn", "autoapp:app", "-b", ":8080", "--reload"]

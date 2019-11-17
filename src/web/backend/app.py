@@ -29,7 +29,7 @@ def initialize_modules(app):
 
 def register_extensions(app):
     """Register Flask extensions."""
-    if not app.config["SQLALCHEMY_DATABASE_URI"]:
+    if app.config["SQLALCHEMY_DATABASE_URI"]:
         db.init_app(app)
         migrate.init_app(app, db)
     login_manager.init_app(app)
