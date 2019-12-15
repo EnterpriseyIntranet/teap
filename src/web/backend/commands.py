@@ -9,7 +9,7 @@ from flask.cli import with_appcontext
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 
 from .nextcloud.utils import check_consistency as check_nextcloud_consistency
-from .ldap.utils import check_consistency as check_ldap_consistency
+from .ldap.utils import check_consistency as check_ldap_consistency, bootstrap_ldap
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
@@ -133,3 +133,10 @@ def urls(url, order):
 def check_services_consistency():
     check_ldap_consistency()
     check_nextcloud_consistency()
+
+
+@click.command()
+@with_appcontext
+def bootstrap():
+    """Create initial structures in controlled services."""
+    bootstrap_ldap()
