@@ -1,7 +1,7 @@
 import logging
 
 from flask import g, current_app
-from edap import Edap, ObjectDoesNotExist
+import edap
 import configparser
 
 logger = logging.getLogger()
@@ -10,7 +10,7 @@ logger = logging.getLogger()
 def get_edap():
     """ Create if doesn't exist or return edap from flask g object """
     if 'edap' not in g:
-        g.edap = Edap(current_app.config['EDAP_HOSTNAME'],
+        g.edap = edap.Edap(current_app.config['EDAP_HOSTNAME'],
                       current_app.config['EDAP_USER'],
                       current_app.config['EDAP_PASSWORD'],
                       current_app.config['EDAP_DOMAIN'])
@@ -73,5 +73,12 @@ def check_consistency():
     edap = get_edap()
     try:
         edap.get_team('everybody')
-    except ObjectDoesNotExist:
+    except edap.ObjectDoesNotExist:
         logger.warning('Edap Everybody team is missing')
+
+
+def bootstrap_ldap():
+    """ Create the basic structure """
+    e = get_edap()
+    src = dict(divisions=get_config_divisions())
+    edap.ensure_org_sanity(e, src)
