@@ -9,7 +9,8 @@ from flask.cli import with_appcontext
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 
 from .nextcloud.utils import check_consistency as check_nextcloud_consistency
-from .ldap.utils import check_consistency as check_ldap_consistency, bootstrap_ldap
+from .ldap.utils import check_consistency as check_ldap_consistency
+from .ldap.models import bootstrap_ldap
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
