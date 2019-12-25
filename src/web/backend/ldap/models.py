@@ -2,7 +2,7 @@
 from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
-from .utils import EdapMixin, get_edap
+from .utils import EdapMixin, get_edap, get_config_divisions
 from ..nextcloud.utils import get_nextcloud, get_group_folder, flush_nextcloud_ldap_cache
 from ..rocket_chat import utils as rutils
 
@@ -218,7 +218,7 @@ class Franchise(GroupChatMixin, GroupFolderMixin):
         folder_id = create_folder_res.data['id']
 
         grant_access_res = nxc.grant_access_to_group_folder(
-                folder_id, self.machine_name)
+                folder_id, self.display_name)
         grant_everybody_access = nxc.grant_access_to_group_folder(
                 folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID)
         nxc.grant_access_to_group_folder(
@@ -363,7 +363,7 @@ class Division(GroupChatMixin, GroupFolderMixin):
         folder_id = create_folder_res.data['id']
 
         grant_access_res = nxc.grant_access_to_group_folder(
-                folder_id, self.machine_name)
+                folder_id, self.display_name)
         grant_everybody_access = nxc.grant_access_to_group_folder(
                 folder_id, LdapTeam.EVERYBODY_NEXTCLOUD_GROUP_ID)
         nxc.grant_access_to_group_folder(
@@ -490,3 +490,15 @@ class LdapTeam(EdapMixin, Team):
             edap.create_team(LdapTeam.EVERYBODY_MACHINE_NAME, LdapTeam.EVERYBODY_DISPLAY_NAME)
             everybody_team = edap.get_team(LdapTeam.EVERYBODY_MACHINE_NAME)
         return edap_team_schema.load(everybody_team)
+
+
+def bootstrap_ldap():
+    """ Create the basic structure """
+    import edap
+
+    e = get_edap()
+    divisions = get_config_divisions()
+    edap.ensure_org_sanity(e)
+    for code, desc in divisions.items():
+        d = LdapDivision(code, desc)
+        d.create()

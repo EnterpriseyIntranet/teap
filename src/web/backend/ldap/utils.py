@@ -75,10 +75,3 @@ def check_consistency():
         edap.get_team('everybody')
     except edap.ObjectDoesNotExist:
         logger.warning('Edap Everybody team is missing')
-
-
-def bootstrap_ldap():
-    """ Create the basic structure """
-    e = get_edap()
-    src = dict(divisions=get_config_divisions())
-    edap.ensure_org_sanity(e, src)
