@@ -18,6 +18,9 @@ WTForms==2.*
 flask-restful==0.*
 marshmallow==3.*
 
+# Flask SAML2
+flask-saml2==0.3.*
+
 # Deployment
 gunicorn==19.*
 
