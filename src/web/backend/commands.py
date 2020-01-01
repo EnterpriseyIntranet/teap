@@ -2,6 +2,7 @@
 import os
 from glob import glob
 from subprocess import call
+import pathlib
 
 import click
 from flask import current_app
@@ -141,3 +142,26 @@ def check_services_consistency():
 def bootstrap():
     """Create initial structures in controlled services."""
     bootstrap_ldap()
+
+
+SAML_CHOICES = {
+        "sp-cert": "sp.crt",
+        "sp-key": "sp.key",
+        "idp-cert": "idp.crt",
+}
+
+CERT_ROOT = pathlib.Path("/tmp")
+
+
+@click.command()
+@click.argument('what', type=click.Choice(tuple(SAML_CHOICES.keys())))
+@click.argument('contents')
+@with_appcontext
+def saml(what, contents):
+    """Set up SAML SP keys and IdP cert. Specify what you want to supply supplied by file contents."""
+    for ent, basename in SAML_CHOICES.items():
+        if what == ent:
+            fname = CERT_ROOT / basename
+            with open(fname, "w") as f:
+                f.write(contents)
+                return

@@ -78,3 +78,4 @@ def register_commands(app):
     app.cli.add_command(commands.urls)
     app.cli.add_command(commands.check_services_consistency)
     app.cli.add_command(commands.bootstrap)
+    app.cli.add_command(commands.saml)
