@@ -70,8 +70,8 @@ def merge_divisions(config_divisions, ldap_divisions):
 
 def check_consistency():
     """ Check if all required system objects exist in Edap """
-    edap = get_edap()
+    e = get_edap()
     try:
-        edap.get_team('everybody')
+        e.get_team('everybody')
     except edap.ObjectDoesNotExist:
         logger.warning('Edap Everybody team is missing')
