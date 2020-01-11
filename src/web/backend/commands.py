@@ -2,7 +2,6 @@
 import os
 from glob import glob
 from subprocess import call
-import pathlib
 
 import click
 from flask import current_app
@@ -12,6 +11,7 @@ from werkzeug.exceptions import MethodNotAllowed, NotFound
 from .nextcloud.utils import check_consistency as check_nextcloud_consistency
 from .ldap.utils import check_consistency as check_ldap_consistency
 from .ldap.models import bootstrap_ldap
+from . import constants as const
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
@@ -144,24 +144,16 @@ def bootstrap():
     bootstrap_ldap()
 
 
-SAML_CHOICES = {
-        "sp-cert": "sp.crt",
-        "sp-key": "sp.key",
-        "idp-cert": "idp.crt",
-}
-
-CERT_ROOT = pathlib.Path("/tmp")
-
-
 @click.command()
-@click.argument('what', type=click.Choice(tuple(SAML_CHOICES.keys())))
+@click.argument('what', type=click.Choice(tuple(const.SAML_CHOICES.keys())))
 @click.argument('contents')
 @with_appcontext
 def saml(what, contents):
     """Set up SAML SP keys and IdP cert. Specify what you want to supply supplied by file contents."""
-    for ent, basename in SAML_CHOICES.items():
+    for ent, basename in const.SAML_CHOICES.items():
         if what == ent:
-            fname = CERT_ROOT / basename
+            fname = const.SAML_CERT_ROOT / basename
             with open(fname, "w") as f:
                 f.write(contents)
+                f.write("\n")
                 return

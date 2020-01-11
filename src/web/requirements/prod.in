@@ -20,6 +20,7 @@ marshmallow==3.*
 
 # Flask SAML2
 flask-saml2==0.3.*
+signxml==2.7.1            # via flask-saml2, see https://github.com/XML-Security/signxml/issues/143 for why not 2.7.2
 
 # Deployment
 gunicorn==19.*
