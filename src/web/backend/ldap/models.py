@@ -500,5 +500,5 @@ def bootstrap_ldap():
     divisions = get_config_divisions()
     edap.ensure_org_sanity(e)
     for code, desc in divisions.items():
-        d = LdapDivision(code, desc)
+        d = LdapDivision(machine_name=code, display_name=desc)
         d.create()
