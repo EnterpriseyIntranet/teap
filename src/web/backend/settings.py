@@ -5,12 +5,15 @@ Most configuration is set via environment variables.
 For local development, use a .env file to set
 environment variables.
 """
+import sys
+
 from environs import Env
 
 env = Env()
 env.read_env()
 
 ENV = env.str('FLASK_ENV', default='production')
+# SERVER_NAME = env.str('SERVER_NAME')
 DEBUG = ENV == 'development'
 
 SQLALCHEMY_DATABASE_URI = env.str('DATABASE_URL', default="")
@@ -37,6 +40,9 @@ EDAP_USER = env.str("EDAP_USER")
 EDAP_PASSWORD = env.str("EDAP_PASSWORD")
 EDAP_DOMAIN = env.str("EDAP_DOMAIN")
 
+AUTHORIZATION = env.str("AUTHORIZATION", False)
+
+
 from flask_saml2.utils import certificate_from_file, private_key_from_file
 from . import constants as const
 
@@ -60,5 +66,6 @@ try:
             },
         },
     ]
-except Exception:
+except Exception as e:
+    print(f"Error configuring SAML: {e}", file=sys.stderr)
     pass  # Files probably don't exist

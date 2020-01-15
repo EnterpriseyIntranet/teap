@@ -2,14 +2,30 @@
 import json
 from functools import wraps
 
-from flask import flash
+import flask
+from flask_login import current_user
+
+from .extensions import service_provider
+
+
+def check_route_access():
+    if any([
+        flask.request.endpoint.startswith('static/'),
+        current_user.is_authenticated,
+        not flask.current_app.config["AUTHORIZATION"],
+            ]):
+        return  # Access granted
+    else:
+        return flask.redirect(flask.url_for(
+            "{bp}.login".format(bp=service_provider.blueprint_name),
+            next=flask.url_for(flask.request.endpoint)))
 
 
 def flash_errors(form, category='warning'):
     """Flash all errors for a form."""
     for field, errors in form.errors.items():
         for error in errors:
-            flash('{0} - {1}'.format(getattr(form, field).label.text, error), category)
+            flask.flash('{0} - {1}'.format(getattr(form, field).label.text, error), category)
 
 
 class EncoderWithBytes(json.JSONEncoder):

@@ -1,8 +1,8 @@
 """The app module, containing the app factory function."""
-from flask import Flask, render_template
+import flask
 
-from . import commands, public, user, core, nextcloud, rocket_chat, ldap, actions, saml
-from .extensions import db, login_manager, migrate
+from . import commands, user, core, nextcloud, rocket_chat, ldap, actions, saml
+from . import extensions, utils
 
 
 def create_app(config_object='backend.settings'):
@@ -10,7 +10,7 @@ def create_app(config_object='backend.settings'):
 
     :param config_object: The configuration object to use.
     """
-    app = Flask(__name__.split('.')[0], static_folder='../dist/static', template_folder='../dist')
+    app = flask.Flask(__name__.split('.')[0], static_folder='../dist/static', template_folder='../dist')
     app.config.from_object(config_object)
     app.url_map.strict_slashes = False
     register_extensions(app)
@@ -24,26 +24,32 @@ def create_app(config_object='backend.settings'):
 
 def initialize_modules(app):
     rocket_chat.initialize_module(app)
+    user.initialize_module(app)
     return None
 
 
 def register_extensions(app):
     """Register Flask extensions."""
     if app.config["SQLALCHEMY_DATABASE_URI"]:
-        db.init_app(app)
-        migrate.init_app(app, db)
-    login_manager.init_app(app)
+        extensions.db.init_app(app)
+        extensions.migrate.init_app(app, extensions.db)
+    extensions.login_manager.init_app(app)
     return None
 
 
 def register_blueprints(app):
     """Register Flask blueprints."""
-    app.register_blueprint(nextcloud.api.blueprint)
-    app.register_blueprint(public.views.blueprint)
-    app.register_blueprint(core.views.blueprint)
-    app.register_blueprint(rocket_chat.api.blueprint)
-    app.register_blueprint(ldap.api.blueprint)
-    app.register_blueprint(actions.api.blueprint)
+    bps = [
+        nextcloud.api.blueprint,
+        core.views.blueprint,
+        rocket_chat.api.blueprint,
+        ldap.api.blueprint,
+        actions.api.blueprint,
+    ]
+    for bp in bps:
+        bp.before_request(utils.check_route_access)
+        app.register_blueprint(bp)
+
     saml_bp = saml.get_blueprint()
     app.register_blueprint(saml_bp, url_prefix="/saml/")
     return None
@@ -55,7 +61,7 @@ def register_errorhandlers(app):
         """Render error template."""
         # If a HTTPException, pull the `code` attribute; default to 500
         error_code = getattr(error, 'code', 500)
-        return render_template('{0}.html'.format(error_code)), error_code
+        return flask.render_template('{0}.html'.format(error_code)), error_code
     for errcode in [401, 404, 500]:
         app.errorhandler(errcode)(render_error)
     return None
@@ -66,8 +72,8 @@ def register_shellcontext(app):
     def shell_context():
         """Shell context objects."""
         return {
-            'db': db,
-            'User': user.models.User}
+            'db': extensions.db,
+        }
 
     app.shell_context_processor(shell_context)
 
