@@ -188,11 +188,7 @@ class LdapMajorStructure(EdapMixin):
         self._add_user_to_edap_dea(uid)
 
     def add_to_edap(self):
-        """ Create franchise entity in ldap """
-        if self.check_exists_by_display_name(self.display_name):
-            raise ConstraintError('Franchise with such display name already exists')
-        self.edap.create_cdea(machine_name=self.machine_name, display_name=self.dea_display_name)
-        return self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
+        raise NotImplementedError()
 
 
 class LdapUser(EdapMixin, User):
@@ -343,6 +339,13 @@ class LdapFranchise(Franchise, LdapMajorStructure):
     def _add_user_to_edap_dea(self, uid):
         self.edap.make_user_member_of_cdea(uid, self.machine_name)
 
+    def add_to_edap(self):
+        """ Create franchise entity in ldap """
+        if self.check_exists_by_display_name(self.display_name):
+            raise ConstraintError('Franchise with such display name already exists')
+        self.edap.create_cdea(machine_name=self.machine_name, display_name=self.dea_display_name)
+        return self.edap.create_franchise(machine_name=self.machine_name, display_name=self.display_name)
+
     def create_teams(self):
         """
         When a new franchise is created, an LDAP entry is created for it, and team entries are created as well,
@@ -413,6 +416,27 @@ class LdapDivision(Division, LdapMajorStructure):
 
     def _add_user_to_edap_dea(self, uid):
         self.edap.make_uid_member_of_ddea(uid, self.machine_name)
+
+    def add_to_edap(self):
+        """ Create division entity in ldap """
+        if self.check_exists_by_display_name(self.display_name):
+            raise ConstraintError('Division with such display name already exists')
+        self.edap.create_ddea(machine_name=self.machine_name, display_name=self.dea_display_name)
+        return self.edap.create_division(machine_name=self.machine_name, display_name=self.display_name)
+
+    @staticmethod
+    def check_exists_by_display_name(display_name):
+        """
+        Check if franchise with such display name already exists
+
+        Args:
+            display_name (str): display name of franchise
+
+        Returns (bool):
+        """
+        edap = get_edap()
+        divisions = edap.get_divisions(f'description={display_name}')
+        return bool(divisions)
 
     def create_teams(self):
         """
