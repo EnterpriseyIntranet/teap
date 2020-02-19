@@ -45,8 +45,7 @@ export default {
         surname: null,
         uid: null,
         password: null,
-        mail: null,
-        groups: []
+        mail: null
       },
       groupExists: true,
       newGroup: {
