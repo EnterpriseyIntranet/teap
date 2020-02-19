@@ -60,7 +60,7 @@ class GroupFolderMixin:
     """ Mixin for posix groups to work with group folder in Nextcloud """
 
     @property
-    def folder_path(self):
+    def main_folder_path(self):
         raise NotImplementedError
 
     def create_folder(self):
@@ -71,7 +71,7 @@ class GroupFolderMixin:
         nxc = get_nextcloud()
         data = nxc.get_group_folders().data
         for _, folder_info in data.items():
-            if folder_info['mount_point'] == self.folder_path:
+            if folder_info['mount_point'] == self.main_folder_path:
                 return True
         return False
 
@@ -396,6 +396,10 @@ class Division(MajorStructure):
     GROUP_FOLDER = 'Divisions'
     DEA_GROUP_SUFFIX = "DDEA"
     ENTITY_NAME = "Division"
+
+    @property
+    def main_folder_path(self):
+        return "/".join([self.GROUP_FOLDER, self.display_name])
 
     @property
     def dea_folder_path(self):
