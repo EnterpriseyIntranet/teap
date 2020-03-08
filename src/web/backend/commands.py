@@ -11,6 +11,7 @@ from werkzeug.exceptions import MethodNotAllowed, NotFound
 from .nextcloud.utils import check_consistency as check_nextcloud_consistency
 from .ldap.utils import check_consistency as check_ldap_consistency
 from .ldap.models import bootstrap_ldap
+from . import constants as const
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
@@ -141,3 +142,18 @@ def check_services_consistency():
 def bootstrap():
     """Create initial structures in controlled services."""
     bootstrap_ldap()
+
+
+@click.command()
+@click.argument('what', type=click.Choice(tuple(const.SAML_CHOICES.keys())))
+@click.argument('contents')
+@with_appcontext
+def saml(what, contents):
+    """Set up SAML SP keys and IdP cert. Specify what you want to supply supplied by file contents."""
+    for ent, basename in const.SAML_CHOICES.items():
+        if what == ent:
+            fname = const.SAML_CERT_ROOT / basename
+            with open(fname, "w") as f:
+                f.write(contents)
+                f.write("\n")
+                return

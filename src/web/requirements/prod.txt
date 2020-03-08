@@ -8,33 +8,46 @@
 -e git+git://github.com/EnterpriseyIntranet/nextcloud-API#egg=nextcloud
 alembic==1.2.0            # via flask-migrate
 aniso8601==8.0.0          # via flask-restful
-certifi==2019.9.11        # via requests
+asn1crypto==1.2.0         # via signxml
+attrs==19.3.0             # via flask-saml2
+certifi==2019.9.11        # via requests, signxml
+cffi==1.13.2              # via cryptography
 chardet==3.0.4            # via requests
 click==7.0
+cryptography==2.8         # via pyopenssl, signxml
+defusedxml==0.6.0         # via flask-saml2
+eight==1.0.0              # via signxml
 environs==5.2.1
 flask-login==0.4.1
 flask-migrate==2.5.2
 flask-restful==0.3.7
+flask-saml2==0.3.0
 flask-sqlalchemy==2.4.0
 flask-wtf==0.14.2
 flask==1.1.1
+future==0.18.2            # via eight
 gunicorn==19.9.0
 idna==2.8                 # via requests
+iso8601==0.1.12           # via flask-saml2
 itsdangerous==1.1.0       # via flask
 jinja2==2.10.1            # via flask
+lxml==4.4.2               # via flask-saml2, signxml
 mako==1.1.0               # via alembic
 markupsafe==1.1.1         # via jinja2, mako
 marshmallow==3.2.0
 pyasn1-modules==0.2.6     # via python-ldap
 pyasn1==0.4.7             # via pyasn1-modules, python-ldap
+pycparser==2.19           # via cffi
+pyopenssl==17.5.0         # via flask-saml2, signxml
 python-dateutil==2.8.0    # via alembic
 python-dotenv==0.10.3     # via environs
 python-editor==1.0.4      # via alembic
 python-ldap==3.2.0
-pytz==2019.2              # via flask-restful
+pytz==2019.2              # via flask-restful, flask-saml2
 requests==2.22.0          # via rocketchat-api
 rocketchat-api==0.6.34
-six==1.12.0               # via flask-restful, python-dateutil
+signxml==2.7.2            # via flask-saml2
+six==1.12.0               # via cryptography, flask-restful, pyopenssl, python-dateutil
 sqlalchemy==1.3.8         # via alembic, flask-sqlalchemy
 urllib3==1.25.5           # via requests
 werkzeug==0.16.0          # via flask

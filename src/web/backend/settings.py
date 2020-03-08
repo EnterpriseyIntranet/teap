@@ -5,7 +5,13 @@ Most configuration is set via environment variables.
 For local development, use a .env file to set
 environment variables.
 """
+import sys
+
 from environs import Env
+
+from flask_saml2.utils import certificate_from_file, private_key_from_file
+from . import constants as const
+
 
 env = Env()
 env.read_env()
@@ -36,3 +42,29 @@ EDAP_HOSTNAME = env.str("EDAP_HOSTNAME")
 EDAP_USER = env.str("EDAP_USER")
 EDAP_PASSWORD = env.str("EDAP_PASSWORD")
 EDAP_DOMAIN = env.str("EDAP_DOMAIN")
+
+SERVER_NAME = env.str("SERVER_NAME")
+AUTHORIZATION = env.bool("AUTHORIZATION", False)
+
+SAML2_IDENTITY_PROVIDERS = [
+    {
+        'CLASS': 'backend.saml.KeycloakIdPHandler',
+        'OPTIONS': {
+            'display_name': 'Keycloak IdP',
+            'entity_id': f'https://sso.{EDAP_DOMAIN}/auth/realms/master',
+            'sso_url':   f'https://sso.{EDAP_DOMAIN}/auth/realms/master/protocol/saml',
+            'slo_url':   f'https://sso.{EDAP_DOMAIN}/auth/realms/master/protocol/saml',
+        },
+    },
+]
+try:
+    SAML2_SP = {
+        'certificate': certificate_from_file(const.SAML_CERT_ROOT / const.SAML_CHOICES["sp-cert"]),
+        'private_key': private_key_from_file(const.SAML_CERT_ROOT / const.SAML_CHOICES["sp-key"]),
+    }
+    SAML2_IDENTITY_PROVIDERS[0]['OPTIONS']['certificate'] = certificate_from_file(
+        const.SAML_CERT_ROOT / const.SAML_CHOICES["idp-cert"]
+    )
+except Exception as e:
+    print(f"Error configuring SAML: {e}", file=sys.stderr)
+    pass  # Files probably don't exist
