@@ -1,8 +1,10 @@
 """The app module, containing the app factory function."""
 import flask
 
-from . import commands, user, core, nextcloud, rocket_chat, ldap, actions, saml
+from . import commands, core, nextcloud, rocket_chat, ldap, actions, saml
 from . import extensions, utils
+
+from werkzeug.contrib.fixers import ProxyFix
 
 
 def create_app(config_object='backend.settings'):
@@ -11,6 +13,7 @@ def create_app(config_object='backend.settings'):
     :param config_object: The configuration object to use.
     """
     app = flask.Flask(__name__.split('.')[0], static_folder='../dist/static', template_folder='../dist')
+    app.wsgi_app = ProxyFix(app.wsgi_app)
     app.config.from_object(config_object)
     app.url_map.strict_slashes = False
     register_extensions(app)
@@ -24,7 +27,6 @@ def create_app(config_object='backend.settings'):
 
 def initialize_modules(app):
     rocket_chat.initialize_module(app)
-    user.initialize_module(app)
     return None
 
 

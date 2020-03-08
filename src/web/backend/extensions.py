@@ -12,6 +12,16 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 
+class User(flask_login.UserMixin):
+    def __init__(self, uid):
+        self.id = uid
+
+
+@login_manager.user_loader
+def load_user(uid):
+    return User(uid)
+
+
 class ServiceProvider(sp.ServiceProvider):
     def __init__(self):
         super().__init__()
@@ -27,8 +37,10 @@ class ServiceProvider(sp.ServiceProvider):
         return "/"
 
     def login_successful(self, auth_data, relay_state):
-        u = self.login_callback(auth_data.nameid)
-        flask_login.login_user(u)
+        uid = auth_data.nameid
+        if self.login_callback:
+            uid = self.login_callback(uid)
+        flask_login.login_user(uid)
         print(flask_login.current_user)
         return super().login_successful(auth_data, relay_state)
 

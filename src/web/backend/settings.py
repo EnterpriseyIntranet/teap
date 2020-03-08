@@ -9,11 +9,14 @@ import sys
 
 from environs import Env
 
+from flask_saml2.utils import certificate_from_file, private_key_from_file
+from . import constants as const
+
+
 env = Env()
 env.read_env()
 
 ENV = env.str('FLASK_ENV', default='production')
-# SERVER_NAME = env.str('SERVER_NAME')
 DEBUG = ENV == 'development'
 
 SQLALCHEMY_DATABASE_URI = env.str('DATABASE_URL', default="")
@@ -40,32 +43,28 @@ EDAP_USER = env.str("EDAP_USER")
 EDAP_PASSWORD = env.str("EDAP_PASSWORD")
 EDAP_DOMAIN = env.str("EDAP_DOMAIN")
 
-AUTHORIZATION = env.str("AUTHORIZATION", False)
+SERVER_NAME = env.str("SERVER_NAME")
+AUTHORIZATION = env.bool("AUTHORIZATION", False)
 
-
-from flask_saml2.utils import certificate_from_file, private_key_from_file
-from . import constants as const
-
+SAML2_IDENTITY_PROVIDERS = [
+    {
+        'CLASS': 'backend.saml.KeycloakIdPHandler',
+        'OPTIONS': {
+            'display_name': 'Keycloak IdP',
+            'entity_id': f'https://sso.{EDAP_DOMAIN}/auth/realms/master',
+            'sso_url':   f'https://sso.{EDAP_DOMAIN}/auth/realms/master/protocol/saml',
+            'slo_url':   f'https://sso.{EDAP_DOMAIN}/auth/realms/master/protocol/saml',
+        },
+    },
+]
 try:
     SAML2_SP = {
         'certificate': certificate_from_file(const.SAML_CERT_ROOT / const.SAML_CHOICES["sp-cert"]),
         'private_key': private_key_from_file(const.SAML_CERT_ROOT / const.SAML_CHOICES["sp-key"]),
     }
-
-    SAML2_IDENTITY_PROVIDERS = [
-        {
-            'CLASS': 'backend.saml.KeycloakIdPHandler',
-            'OPTIONS': {
-                'display_name': 'Keycloak IdP',
-                'entity_id': f'https://sso.{EDAP_DOMAIN}/auth/realms/master',
-                'sso_url':   f'https://sso.{EDAP_DOMAIN}/auth/realms/master/protocol/saml',
-                'slo_url':   f'https://sso.{EDAP_DOMAIN}/auth/realms/master/protocol/saml',
-                'certificate': certificate_from_file(
-                    const.SAML_CERT_ROOT / const.SAML_CHOICES["idp-cert"]
-                ),
-            },
-        },
-    ]
+    SAML2_IDENTITY_PROVIDERS[0]['OPTIONS']['certificate'] = certificate_from_file(
+        const.SAML_CERT_ROOT / const.SAML_CHOICES["idp-cert"]
+    )
 except Exception as e:
     print(f"Error configuring SAML: {e}", file=sys.stderr)
     pass  # Files probably don't exist
