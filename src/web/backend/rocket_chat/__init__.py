@@ -7,4 +7,4 @@ def register_blueprint(app):
 
 def initialize_module(app):
     from . import utils
-    utils.populate_service(app.config["SQLALCHEMY_DATABASE_URI"])
+    utils.populate_service(app.config["TEAP_USE_DB"])

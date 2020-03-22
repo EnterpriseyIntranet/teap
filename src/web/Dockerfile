@@ -25,13 +25,19 @@ RUN true \
 
 # Then, copy all of the rest.
 # MAKE SURE THAT YOU HAVE A CLEAN REPOSITORY unles you're in for a surprise
-COPY . .
+
+COPY frontend frontend
 
 RUN true \
 	&& (cd frontend  && npm run build) \
         && true
 
+COPY autoapp.py .
+COPY backend backend
+
+COPY env .env
+
 EXPOSE 8080
 
 # CMD ["flask", "run", "--host", "0.0.0.0", "--port", "8080"]
-CMD ["gunicorn", "autoapp:app", "-b", ":8080", "--reload"]
+CMD ["gunicorn", "autoapp:app", "-b", ":8080", "--reload", "--log-file=-", "--capture-output", "--error-logfile=-"]

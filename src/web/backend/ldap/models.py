@@ -226,6 +226,20 @@ class LdapUser(EdapMixin, User):
             'rocket': rocket_data
         }
 
+    def modify(self, what, new_value):
+        """
+        what: one of name, surname, password, mail, picture_bytes
+        new_value: Plain (not raw) representation of the value.
+        """
+        translate = dict(
+                name="givenName",
+                surname="sn",
+                mail="mail",
+                picture_bytes="jpegPhoto",
+                password="password",
+        )
+        return self.edap.modify_user(self.uid, {translate[what]: new_value})
+
     def delete(self):
         self.remove_from_all_groups()
         res = self.edap.delete_user(self.uid)

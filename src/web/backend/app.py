@@ -32,7 +32,7 @@ def initialize_modules(app):
 
 def register_extensions(app):
     """Register Flask extensions."""
-    if app.config["SQLALCHEMY_DATABASE_URI"]:
+    if app.config["TEAP_USE_DB"]:
         extensions.db.init_app(app)
         extensions.migrate.init_app(app, extensions.db)
     extensions.login_manager.init_app(app)
