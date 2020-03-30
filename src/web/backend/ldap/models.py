@@ -1,5 +1,5 @@
 """ Models to work with ldap objects, operated by EDAP library """
-from edap import ObjectDoesNotExist, ConstraintError
+from edap import ObjectDoesNotExist, ConstraintError, c
 from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap, get_config_divisions
@@ -197,6 +197,18 @@ class LdapUser(EdapMixin, User):
         self.fqdn = fqdn
         super(LdapUser, self).__init__(*args, **kwargs)
 
+    @classmethod
+    def get_from_edap(cls, uid):
+        ret = cls()
+        edap_dict = ret.edap.get_user(uid)
+
+        ret.uid = uid
+        ret.given_name = edap_dict["givenName"][0].decode("UTF-8")
+        ret.mail = edap_dict["mail"][0].decode("UTF-8")
+        ret.surname = edap_dict["sn"][0].decode("UTF-8")
+        ret.picture_bytes = edap_dict["jpegPhoto"][0]
+        return ret
+
     def __repr__(self):
         return f'<LdapUser(fqdn={self.fqdn}, uid={self.uid})>'
 
@@ -225,6 +237,39 @@ class LdapUser(EdapMixin, User):
         return {
             'rocket': rocket_data
         }
+
+    def modify(self, what, new_value):
+        """
+        Args:
+            what: one of name, surname, password, mail, picture_bytes
+            new_value: Plain (not raw) representation of the value.
+        """
+        translate = dict(
+                name="givenName",
+                surname="sn",
+                mail="mail",
+                picture_bytes="jpegPhoto",
+                password="userPassword",
+                cn="cn",
+        )
+        return self.edap.modify_user(self.uid, {translate[what]: new_value})
+
+    def sync_to_edap(self):
+        """
+        Sync all LDAP user attributes except password.
+        """
+        self.modify("name", self.given_name)
+        self.modify("surname", self.surname)
+        self.modify("mail", self.mail)
+        self.modify("picture_bytes", self.picture_bytes)
+        # self.modify("cn", f"{self.given_name} {self.surname}")
+
+    def check_password(self, password):
+        """
+        Args:
+            password: The password to check against
+        """
+        return self.edap.verify_user_password(self.uid, password)
 
     def delete(self):
         self.remove_from_all_groups()
@@ -328,6 +373,8 @@ class LdapFranchise(Franchise, LdapMajorStructure):
 
     def __init__(self, fqdn=None, *args, **kwargs):
         self.fqdn = fqdn
+        if "display_name" not in kwargs:
+            kwargs["display_name"] = c.COUNTRIES_CODES.get(kwargs["machine_name"], kwargs["machine_name"])
         super(LdapFranchise, self).__init__(*args, **kwargs)
 
     def __repr__(self):

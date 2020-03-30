@@ -20,6 +20,7 @@ ENV = env.str('FLASK_ENV', default='production')
 DEBUG = ENV == 'development'
 
 SQLALCHEMY_DATABASE_URI = env.str('DATABASE_URL', default="")
+TEAP_USE_DB = SQLALCHEMY_DATABASE_URI and env.bool("TEAP_USE_DB", default=True)
 SECRET_KEY = env.str('SECRET_KEY')
 BCRYPT_LOG_ROUNDS = env.int('BCRYPT_LOG_ROUNDS', default=13)
 DEBUG_TB_ENABLED = DEBUG
