@@ -1,5 +1,5 @@
 """ Models to work with ldap objects, operated by EDAP library """
-from edap import ObjectDoesNotExist, ConstraintError, c
+from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 
 from .utils import EdapMixin, get_edap, get_config_divisions
@@ -374,7 +374,7 @@ class LdapFranchise(Franchise, LdapMajorStructure):
     def __init__(self, fqdn=None, *args, **kwargs):
         self.fqdn = fqdn
         if "display_name" not in kwargs:
-            kwargs["display_name"] = c.COUNTRIES_CODES.get(kwargs["machine_name"], kwargs["machine_name"])
+            kwargs["display_name"] = LdapFranchise.suggest_name(kwargs["machine_name"])
         super(LdapFranchise, self).__init__(*args, **kwargs)
 
     def __repr__(self):
