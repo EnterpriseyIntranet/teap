@@ -40,7 +40,7 @@ class ServiceProvider(sp.ServiceProvider):
         uid = auth_data.nameid
         if self.login_callback:
             uid = self.login_callback(uid)
-        flask_login.login_user(uid)
+        flask_login.login_user(User(uid))
         print(flask_login.current_user)
         return super().login_successful(auth_data, relay_state)
 
