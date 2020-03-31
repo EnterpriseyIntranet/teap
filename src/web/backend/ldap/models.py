@@ -203,10 +203,10 @@ class LdapUser(EdapMixin, User):
         edap_dict = ret.edap.get_user(uid)
 
         ret.uid = uid
-        ret.given_name = edap_dict["givenName"][0].decode("UTF-8")
-        ret.mail = edap_dict["mail"][0].decode("UTF-8")
-        ret.surname = edap_dict["sn"][0].decode("UTF-8")
-        ret.picture_bytes = edap_dict["jpegPhoto"][0]
+        ret.given_name = edap_dict.get("givenName", [b""])[0].decode("UTF-8")
+        ret.mail = edap_dict.get("mail", [b""])[0].decode("UTF-8")
+        ret.surname = edap_dict.get("sn", [b""])[0].decode("UTF-8")
+        ret.picture_bytes = edap_dict.get("jpegPhoto", [None])[0]
         return ret
 
     def __repr__(self):
