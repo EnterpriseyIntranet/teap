@@ -135,7 +135,11 @@ class MajorStructure(GroupFolderMixin, GroupChatMixin):
         nxc = get_nextcloud()
         self._assure_private_folder_exists(nxc)
 
-        dea_folder_permissions = GENERIC_FOLDER_PERMISSIONS + [
+        dea_folder_permissions = [
+            (NEXTCLOUD_ADMIN_GROUP, NxcPermission.ALL),
+            (self.display_name, NxcPermission.READ),
+        ]
+        dea_folder_permissions = dea_folder_permissions + [
                 (self.dea_display_name, NxcPermission.ALL),
         ]
 
@@ -332,6 +336,8 @@ class LdapUser(EdapMixin, User):
 
     def ensure_in_franchise(self, franchise_machine_name):
         self.edap.make_user_member_of_franchise(self.uid, franchise_machine_name)
+        franchise = LdapFranchise(machine_name=franchise_machine_name)
+        rutils.RocketChatService().invite_user_to_channel(franchise.chat_name, self.uid)
 
     def ensure_in_fdea(self, franchise_machine_name):
         self.edap.make_user_member_of_cdea(self.uid, franchise_machine_name)
