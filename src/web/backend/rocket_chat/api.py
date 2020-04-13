@@ -53,31 +53,23 @@ class UserRocketChannels(rutils.RocketMixin, MethodView):
 
     def post(self, user_id):
         channel = request.json.get('channel')
-        rocket_user = rutils.rocket_service.get_user_by_username(user_id)
-        rocket_channel = rutils.rocket_service.get_channel_by_name(channel)
+        try:
+            ids = rutils.rocket_service.get_ids(user_id, channel_name=channel)
+        except ValueError as exc:
+            return jsonify({'message': str(exc)}), 404
 
-        if not rocket_channel:
-            return jsonify({'message': 'Rocket channel not found'}), 404
-
-        if not rocket_user:
-            return jsonify({'message': 'Rocket user not found'}), 404
-
-        res = rutils.rocket_service.invite_user_to_channel(rocket_channel=rocket_channel['_id'],
-                                                    rocket_user=rocket_user['_id'])
+        res = rutils.rocket_service.invite_user_to_channel(rocket_channel=ids.channel,
+                                                           rocket_user=ids.user)
         return jsonify(res.json()), res.status_code
 
     def delete(self, user_id, channel):
-        rocket_user = rutils.rocket_service.get_user_by_username(user_id)
-        rocket_channel = rutils.rocket_service.get_channel_by_name(channel)
+        try:
+            ids = rutils.rocket_service.get_ids(user_id, channel_name=channel)
+        except ValueError as exc:
+            return jsonify({'message': str(exc)}), 404
 
-        if not rocket_channel:
-            return jsonify({'message': 'Rocket channel not found'}), 404
-
-        if not rocket_user:
-            return jsonify({'message': 'Rocket user not found'}), 404
-
-        self.rocket.channels_kick(rocket_channel['_id'], rocket_user['_id'])
-        return jsonify({"message": "success"}), 202
+        res = self.rocket.channels_kick(ids.channel, ids.user)
+        return jsonify(res.json()), res.status_code
 
 
 class UserTeamsChatsViewSet(rutils.RocketMixin, EdapMixin, MethodView):
