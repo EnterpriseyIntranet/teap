@@ -78,7 +78,9 @@ class GroupFolderMixin:
 
 class User:
     def __init__(self, uid=None, given_name=None, mail=None, surname=None, franchises=None, divisions=None,
-                 teams=None, picture_bytes=b""):
+                 teams=None, picture_bytes=b"", mail_aliases=None):
+        if not mail_aliases:
+            mail_aliases = []
         self.uid = uid
         self.given_name = given_name
         self.mail = mail
@@ -87,6 +89,7 @@ class User:
         self.divisions = divisions
         self.teams = teams
         self.picture_bytes = picture_bytes
+        self.mail_aliases = mail_aliases
 
     def delete(self, *args, **kwargs):
         pass
@@ -211,6 +214,7 @@ class LdapUser(EdapMixin, User):
         ret.mail = edap_dict.get("mail", [b""])[0].decode("UTF-8")
         ret.surname = edap_dict.get("sn", [b""])[0].decode("UTF-8")
         ret.picture_bytes = edap_dict.get("jpegPhoto", [None])[0]
+        ret.mail_aliases = [a.decode("UTF-8") for a in edap_dict.get("mailAlias", [b""])]
         return ret
 
     def __repr__(self):
@@ -253,6 +257,7 @@ class LdapUser(EdapMixin, User):
                 surname="sn",
                 mail="mail",
                 picture_bytes="jpegPhoto",
+                mail_aliases="mailAlias",
                 password="userPassword",
                 cn="cn",
         )
@@ -266,6 +271,7 @@ class LdapUser(EdapMixin, User):
         self.modify("surname", self.surname)
         self.modify("mail", self.mail)
         self.modify("picture_bytes", self.picture_bytes)
+        self.modify("mail_aliases", self.mail_aliases)
         # self.modify("cn", f"{self.given_name} {self.surname}")
 
     def check_password(self, password):
@@ -337,7 +343,12 @@ class LdapUser(EdapMixin, User):
     def ensure_in_franchise(self, franchise_machine_name):
         self.edap.make_user_member_of_franchise(self.uid, franchise_machine_name)
         franchise = LdapFranchise(machine_name=franchise_machine_name)
-        rutils.RocketChatService().invite_user_to_channel(franchise.chat_name, self.uid)
+
+        rocket = rutils.RocketChatService()
+        rocket_user = rocket.get_user_by_username(self.uid)
+        rocket_channel = rocket.get_channel_by_name(franchise.chat_name)
+        rocket.invite_user_to_channel(rocket_channel=rocket_channel['_id'],
+                                      rocket_user=rocket_user['_id'])
 
     def ensure_in_fdea(self, franchise_machine_name):
         self.edap.make_user_member_of_cdea(self.uid, franchise_machine_name)

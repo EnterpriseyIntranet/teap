@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+from collections import namedtuple
 import re
 
 from flask import g, current_app
@@ -8,6 +9,8 @@ from rocketchat_API.rocketchat import RocketChat
 from ..actions.models import Action
 
 logger = logging.getLogger()
+
+rocket_ids = namedtuple("rocket_ids", ("user", "channel", "group"))
 
 
 def get_rocket():
@@ -80,7 +83,7 @@ class RocketChatService(RocketMixin):
         """
         return self.rocket.users_create(email, name, password, username, requirePasswordChange=True)
 
-    def create_channel(self, channel_name):
+    def create_channel(self, room_name):
         """
         Create channel
         Args:
@@ -89,28 +92,77 @@ class RocketChatService(RocketMixin):
         Returns:
 
         """
-        return self.rocket.channels_create(channel_name)
+        return self.rocket.channels_create(room_name)
+
+    def create_group(self, room_name):
+        """
+        Create channel
+        Args:
+            channel_name (str):
+
+        Returns:
+
+        """
+        return self.rocket.groups_create(room_name)
 
     def invite_user_to_channel(self, rocket_channel, rocket_user):
         return self.rocket.channels_invite(rocket_channel, rocket_user)
+
+    def invite_user_to_group(self, rocket_group, rocket_user):
+        return self.rocket.groups_invite(rocket_group, rocket_user)
+
+    def get_ids(self, username, channel_name=None, group_name=None):
+        rocket_user = rocket_service.get_user_by_username(username)
+        if not rocket_user:
+            raise ValueError(f"Rocket.chat user '{username}' not found")
+
+        rocket_channel = None
+        if channel_name:
+            rocket_channel = rocket_service.get_channel_by_name(channel_name)
+            if not rocket_channel:
+                raise ValueError(f"Rocket.chat channel '{channel_name}' not found")
+
+        rocket_group = None
+        if group_name:
+            rocket_group = rocket_service.get_group_by_name(group_name)
+            if not rocket_group:
+                raise ValueError(f"Rocket.chat group '{group_name}' not found")
+
+        return rocket_ids(
+                user=rocket_user["_id"],
+                channel=rocket_channel["_id"],
+                group=rocket_group["_id"],
+        )
 
     def delete_user(self, user_id):
         return self.rocket.users_delete(user_id)
 
     def get_channel_by_name(self, channel_name):
         """ Get rocket channel json object by it's name """
-        query = '{{"fname": {{"$eq": "{channel_name}"}}}}'.format(channel_name=channel_name)
+        query = f'{{"fname": {{"$eq": "{channel_name}"}}}}'
         res = self.rocket.channels_list(query=query)
         if res.status_code != 200:
             return None
-        channels = res.json()['channels']
-        if not channels:
+        rooms = res.json()['channels']
+        if not rooms:
             return None
-        return channels[0]
+        return rooms[0]
+
+    def get_group_by_name(self, group_name):
+        """ Get rocket group json object by it's name """
+        res = self.rocket.groups_list_all()
+        if res.status_code != 200:
+            return None
+        all_rooms = res.json()['groups']
+        good_rooms = [r for r in all_rooms if r["name" == group_name]]
+        if not good_rooms:
+            return None
+        return good_rooms[0]
 
     def get_user_by_username(self, username):
         """ Get rocket user json object by it's username """
-        res = self.rocket.users_list(query='{{"username":{{"$eq": "{username}"}}}}'.format(username=username))
+        query = f'{{"username":{{"$eq": "{username}"}}}}'
+        res = self.rocket.users_list(query=query)
         if res.status_code != 200:
             return None
         users = res.json()['users']
