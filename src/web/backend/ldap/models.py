@@ -343,7 +343,12 @@ class LdapUser(EdapMixin, User):
     def ensure_in_franchise(self, franchise_machine_name):
         self.edap.make_user_member_of_franchise(self.uid, franchise_machine_name)
         franchise = LdapFranchise(machine_name=franchise_machine_name)
-        rutils.RocketChatService().invite_user_to_channel(franchise.chat_name, self.uid)
+
+        rocket = rutils.RocketChatService()
+        rocket_user = rocket.get_user_by_username(self.uid)
+        rocket_channel = rocket.get_channel_by_name(franchise.chat_name)
+        rocket.invite_user_to_channel(rocket_channel=rocket_channel['_id'],
+                                      rocket_user=rocket_user['_id'])
 
     def ensure_in_fdea(self, franchise_machine_name):
         self.edap.make_user_member_of_cdea(self.uid, franchise_machine_name)
