@@ -4,7 +4,7 @@ import flask
 from . import commands, core, nextcloud, rocket_chat, ldap, actions, saml
 from . import extensions, utils
 
-from werkzeug.contrib.fixers import ProxyFix
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 def create_app(config_object='backend.settings'):
