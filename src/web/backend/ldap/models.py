@@ -45,7 +45,7 @@ class GroupChatMixin:
         Create channel in chat
         Returns (dict):
         """
-        channel_res = rutils.rocket_service.create_channel(self.chat_name)
+        channel_res = rutils.rocket_service.create_channel(channel_name=self.chat_name)
         return channel_res.json()
 
     def create_group(self):
@@ -53,7 +53,7 @@ class GroupChatMixin:
         Create group in chat
         Returns (dict):
         """
-        group_res = rutils.rocket_service.create_group(self.chat_name)
+        group_res = rutils.rocket_service.create_group(group_name=self.chat_name)
         return group_res.json()
 
     def channel_exists(self):
@@ -78,7 +78,7 @@ class GroupFolderMixin:
     def main_folder_path(self):
         raise NotImplementedError
 
-    def create_folder(self):
+    def create_main_folder(self):
         raise NotImplementedError
 
     def folder_exists(self):
@@ -213,7 +213,7 @@ class LdapMajorStructure(EdapMixin):
         if not self.group_exists():
             self.create_group()
         if not self.folder_exists():
-            self.create_folder()
+            self.create_main_folder()
 
     def add_user_dea(self, uid):
         self.add_user(uid)

@@ -17,9 +17,11 @@ class ActionABC:
     ROCKET_EVENTS = [CREATE_ROCKET_CHANNEL, CREATE_ROCKET_USER, INVITE_USER_TO_CHANNEL]
 
     EVENT_CHOICES = {
-        CREATE_ROCKET_CHANNEL: 'Rocket channel creation',
         CREATE_ROCKET_USER: 'Rocket user creation',
-        INVITE_USER_TO_CHANNEL: 'Invite rocket user to channel'
+        CREATE_ROCKET_CHANNEL: 'Rocket channel creation',
+        INVITE_USER_TO_CHANNEL: 'Invite rocket user to channel',
+        CREATE_ROCKET_GROUP: 'Rocket group creation',
+        INVITE_USER_TO_GROUP: 'Invite rocket user to group',
     }
 
     @property
@@ -64,13 +66,13 @@ class ActionABC:
         from ..rocket_chat import utils as rutils
         if self.event_name == self.CREATE_ROCKET_USER:
             return rutils.rocket_service.create_user(**self.data)
-        elif self.event_name == self.create_rocket_channel:
+        elif self.event_name == self.CREATE_ROCKET_CHANNEL:
             return rutils.rocket_service.create_channel(**self.data)
-        elif self.event_name == self.invite_user_to_channel:
+        elif self.event_name == self.INVITE_USER_TO_CHANNEL:
             return rutils.rocket_service.invite_user_to_channel(**self.data)
-        elif self.event_name == self.create_rocket_group:
+        elif self.event_name == self.CREATE_ROCKET_GROUP:
             return rutils.rocket_service.create_group(**self.data)
-        elif self.event_name == self.invite_user_to_group:
+        elif self.event_name == self.INVITE_USER_TO_GROUP:
             return rutils.rocket_service.invite_user_to_group(**self.data)
 
 

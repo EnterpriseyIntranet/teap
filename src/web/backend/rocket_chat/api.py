@@ -67,10 +67,33 @@ class UserRocketChannels(rutils.RocketMixin, MethodView):
     def delete(self, user_id, channel):
         try:
             ids = rutils.rocket_service.get_ids(user_id, channel_name=channel)
-        except ValueError as exc:
+        except valueerror as exc:
             return jsonify({'message': str(exc)}), 404
 
         res = self.rocket.channels_kick(ids.channel, ids.user)
+        return jsonify(res.json()), res.status_code
+
+
+class UserRocketGroups(rutils.RocketMixin, MethodView):
+
+    def post(self, user_id):
+        group = request.json.get('room')
+        try:
+            ids = rutils.rocket_service.get_ids(user_id, group_name=group)
+        except ValueError as exc:
+            return jsonify({'message': str(exc)}), 404
+
+        res = rutils.rocket_service.invite_user_to_group(rocket_group=ids.group,
+                                                         rocket_user=ids.user)
+        return jsonify(res.json()), res.status_code
+
+    def delete(self, user_id, group):
+        try:
+            ids = rutils.rocket_service.get_ids(user_id, group_name=group)
+        except valueerror as exc:
+            return jsonify({'message': str(exc)}), 404
+
+        res = self.rocket.groups_kick(ids.group, ids.user)
         return jsonify(res.json()), res.status_code
 
 
@@ -85,24 +108,21 @@ class UserTeamsChatsViewSet(rutils.RocketMixin, EdapMixin, MethodView):
         except ObjectDoesNotExist:
             return jsonify({'message': 'Team corresponding franchise or division are not found'}), 404
 
-        user = rutils.rocket_service.get_user_by_username(uid)
+        try:
+            ids_franchise = rutils.rocket_service.get_ids(uid, group_name=franchise.chat_name)
+            ids_division = rutils.rocket_service.get_ids(uid, group_name=division.chat_name)
+        except ValueError as exc:
+            return jsonify({'message': str(exc)}), 404
 
-        franchise_channel = rutils.rocket_service.get_channel_by_name(franchise.chat_name)
-        division_channel = rutils.rocket_service.get_channel_by_name(division.chat_name)
+        res = rutils.rocket_service.invite_user_to_group(rocket_group=ids_franchise.group,
+                                                         rocket_user=ids_franchise.user)
+        if res.status_code != 200:
+            return jsonify(res.json()), res.status_code
 
-        if not all([user, franchise_channel, division_channel]):
-            return jsonify({'message': 'Corresponding franchise or division channels not found'}), 400
-
-        franchise_chat_res = rutils.rocket_service.invite_user_to_channel(rocket_channel=franchise_channel['_id'],
-                                                                   rocket_user=user['_id'])
-        division_chat_res = rutils.rocket_service.invite_user_to_channel(rocket_channel=division_channel['_id'],
-                                                                  rocket_user=user['_id'])
-
-        if franchise_chat_res.status_code != 200:
-            return jsonify(franchise_chat_res.json()), franchise_chat_res.status_code
-
-        if division_chat_res.status_code != 200:
-            return jsonify(division_chat_res.json()), division_chat_res.status_code
+        res = rutils.rocket_service.invite_user_to_group(rocket_group=ids_division.group,
+                                                         rocket_user=ids_division.user)
+        if res.status_code != 200:
+            return jsonify(res.json()), res.status_code
 
         return jsonify({'message': 'success'}), 200
 
@@ -114,4 +134,8 @@ blueprint.add_url_rule('users/<uid>/teams/<team_machine_name>/chats',
 
 user_rocket_channels_view = UserRocketChannels.as_view('user_rocket_channels')
 blueprint.add_url_rule('users/<user_id>/channels', view_func=user_rocket_channels_view, methods=['POST'])
-blueprint.add_url_rule('users/<user_id>/channels/<channel>', view_func=user_rocket_channels_view, methods=['DELETE'])
+blueprint.add_url_rule('users/<user_id>/channels/<room>', view_func=user_rocket_channels_view, methods=['DELETE'])
+
+user_rocket_groups_view = UserRocketGroups.as_view('user_rocket_groups')
+blueprint.add_url_rule('users/<user_id>/groups', view_func=user_rocket_groups_view, methods=['POST'])
+blueprint.add_url_rule('users/<user_id>/channels/<room>', view_func=user_rocket_groups_view, methods=['DELETE'])

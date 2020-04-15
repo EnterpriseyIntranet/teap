@@ -106,7 +106,7 @@ export default {
     },
 
     addToRocketGroup (groupId) {
-      RocketUserChannelsService.post(this.user.uid, groupId)
+      RocketUserGroupsService.post(this.user.uid, groupId)
         .then(response => {
           this.$notifier.success({title: 'Successfully added to rocket group'})
         })
@@ -116,7 +116,7 @@ export default {
     },
 
     deleteFromRocketGroup (groupId) {
-      RocketUserChannelsService.delete(this.user.uid, groupId)
+      RocketUserGroupsService.delete(this.user.uid, groupId)
         .then(response => {
           this.$notifier.success({title: 'Deleted from corresponding rocket group'})
         })

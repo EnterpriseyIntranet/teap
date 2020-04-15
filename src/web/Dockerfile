@@ -34,6 +34,7 @@ RUN true \
 
 COPY autoapp.py .
 COPY backend backend
+COPY migrations migrations
 
 COPY env .env
 
