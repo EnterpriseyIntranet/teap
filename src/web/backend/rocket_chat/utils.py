@@ -121,17 +121,19 @@ class RocketChatService(RocketMixin):
             rocket_channel = rocket_service.get_channel_by_name(channel_name)
             if not rocket_channel:
                 raise ValueError(f"Rocket.chat channel '{channel_name}' not found")
+            rocket_channel = rocket_channel["_id"]
 
         rocket_group = None
         if group_name:
             rocket_group = rocket_service.get_group_by_name(group_name)
             if not rocket_group:
                 raise ValueError(f"Rocket.chat group '{group_name}' not found")
+            rocket_group = rocket_group["_id"]
 
         return rocket_ids(
                 user=rocket_user["_id"],
-                channel=rocket_channel["_id"],
-                group=rocket_group["_id"],
+                channel=rocket_channel,
+                group=rocket_group,
         )
 
     def delete_user(self, user_id):
@@ -154,7 +156,7 @@ class RocketChatService(RocketMixin):
         if res.status_code != 200:
             return None
         all_rooms = res.json()['groups']
-        good_rooms = [r for r in all_rooms if r["name" == group_name]]
+        good_rooms = [r for r in all_rooms if r["name"] == group_name]
         if not good_rooms:
             return None
         return good_rooms[0]
@@ -185,8 +187,8 @@ class LoggingRocketChatService(RocketChatService):
         return super().invite_user_to_channel(rocket_channel, rocket_user)
 
     @log_rocket_action(event_name=Action.CREATE_ROCKET_GROUP)
-    def create_group(self, rocket_group):
-        return super().create_group(rocket_group)
+    def create_group(self, group_name):
+        return super().create_group(group_name)
 
     @log_rocket_action(event_name=Action.INVITE_USER_TO_GROUP)
     def invite_user_to_group(self, rocket_group, rocket_user):

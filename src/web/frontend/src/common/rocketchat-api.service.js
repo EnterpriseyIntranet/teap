@@ -29,3 +29,9 @@ export const RocketUserChannelsService = {
     return ApiService.post(`${BASE_URL}users/${uid}/teams/${teamMachineName}/chats`)
   }
 }
+
+export const RocketUserGroupsService = {
+  post (uid, room) {
+    return ApiService.post(`${BASE_URL}users/${uid}/groups`, {room: room})
+  }
+}
