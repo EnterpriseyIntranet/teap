@@ -7,8 +7,12 @@ from ..database import db, Column, Model, SurrogatePK
 class ActionABC:
 
     CREATE_ROCKET_USER = 'create_rocket_user'
+
     CREATE_ROCKET_CHANNEL = 'create_rocket_channel'
     INVITE_USER_TO_CHANNEL = 'invite_user_to_channel'
+
+    CREATE_ROCKET_GROUP = 'create_rocket_group'
+    INVITE_USER_TO_GROUP = 'invite_user_to_group'
 
     ROCKET_EVENTS = [CREATE_ROCKET_CHANNEL, CREATE_ROCKET_USER, INVITE_USER_TO_CHANNEL]
 
@@ -60,10 +64,14 @@ class ActionABC:
         from ..rocket_chat import utils as rutils
         if self.event_name == self.CREATE_ROCKET_USER:
             return rutils.rocket_service.create_user(**self.data)
-        elif self.event_name == self.CREATE_ROCKET_CHANNEL:
+        elif self.event_name == self.create_rocket_channel:
             return rutils.rocket_service.create_channel(**self.data)
-        elif self.event_name == self.INVITE_USER_TO_CHANNEL:
+        elif self.event_name == self.invite_user_to_channel:
             return rutils.rocket_service.invite_user_to_channel(**self.data)
+        elif self.event_name == self.create_rocket_group:
+            return rutils.rocket_service.create_group(**self.data)
+        elif self.event_name == self.invite_user_to_group:
+            return rutils.rocket_service.invite_user_to_group(**self.data)
 
 
 class Action(SurrogatePK, Model, ActionABC):
