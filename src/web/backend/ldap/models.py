@@ -45,15 +45,30 @@ class GroupChatMixin:
         Create channel in chat
         Returns (dict):
         """
-        channel_res = rutils.rocket_service.create_channel(channel_name=self.chat_name)
+        channel_res = rutils.rocket_service.create_channel(self.chat_name)
         return channel_res.json()
+
+    def create_group(self):
+        """
+        Create group in chat
+        Returns (dict):
+        """
+        group_res = rutils.rocket_service.create_group(self.chat_name)
+        return group_res.json()
 
     def channel_exists(self):
         """
-        Check if franchise channel in chat exists
+        Check if channel in chat exists
         Returns (bool):
         """
         return bool(rutils.rocket_service.get_channel_by_name(self.chat_name))
+
+    def group_exists(self):
+        """
+        Check if group in chat exists
+        Returns (bool):
+        """
+        return bool(rutils.rocket_service.get_group_by_name(self.chat_name))
 
 
 class GroupFolderMixin:
@@ -167,7 +182,7 @@ class LdapMajorStructure(EdapMixin):
         """ Create franchise with self.machine_name, self.display_name, create corresponding teams """
         self.add_to_edap()
         self.create_teams()
-        channel_res = self.create_channel()
+        channel_res = self.create_group()
 
         # create group folders
         main_folder_success = self.create_main_folder()
@@ -183,10 +198,20 @@ class LdapMajorStructure(EdapMixin):
             },
         }
 
+    @staticmethod
+    def _get_ldap_dict(code):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_ldap(cls, code):
+        structure = cls._get_ldap_dict(code)
+        kwargs = dict(machine_name=code, display_name=structure["description"][0].decode("UTF-8"))
+        return cls(** kwargs)
+
     def add_user(self, uid):
         self._add_user_to_edap(uid)
-        if not self.channel_exists():
-            self.create_channel()
+        if not self.group_exists():
+            self.create_group()
         if not self.folder_exists():
             self.create_folder()
 
@@ -345,10 +370,10 @@ class LdapUser(EdapMixin, User):
         franchise = LdapFranchise(machine_name=franchise_machine_name)
 
         rocket = rutils.RocketChatService()
-        rocket_user = rocket.get_user_by_username(self.uid)
-        rocket_channel = rocket.get_channel_by_name(franchise.chat_name)
-        rocket.invite_user_to_channel(rocket_channel=rocket_channel['_id'],
-                                      rocket_user=rocket_user['_id'])
+        ids = rocket.get_ids(self.uid, group_name=franchise.chat_name)
+        rocket.invite_user_to_group(
+                rocket_group=ids.group,
+                rocket_user=ids.user)
 
     def ensure_in_fdea(self, franchise_machine_name):
         self.edap.make_user_member_of_cdea(self.uid, franchise_machine_name)
@@ -382,6 +407,10 @@ class Franchise(MajorStructure):
     ENTITY_NAME = "Franchise"
 
     @property
+    def main_folder_path(self):
+        return "/".join([self.GROUP_FOLDER, self.machine_name.upper()])
+
+    @property
     def dea_folder_path(self):
         return "/".join([self.main_folder_path, "FD private"])
 
@@ -393,6 +422,11 @@ class LdapFranchise(Franchise, LdapMajorStructure):
         if "display_name" not in kwargs:
             kwargs["display_name"] = LdapFranchise.suggest_name(kwargs["machine_name"])
         super(LdapFranchise, self).__init__(*args, **kwargs)
+
+    @staticmethod
+    def _get_ldap_dict(code):
+        edap = get_edap()
+        return edap.get_franchise(code)
 
     def __repr__(self):
         return f'<LdapFranchise(fqdn={self.fqdn})>'
@@ -478,6 +512,11 @@ class LdapDivision(Division, LdapMajorStructure):
 
     def __repr__(self):
         return f'<LdapDivision(fqdn={self.fqdn}>'
+
+    @staticmethod
+    def _get_ldap_dict(code):
+        edap = get_edap()
+        return edap.get_division(code)
 
     def _add_user_to_edap(self, uid):
         self.edap.make_uid_member_of_division(uid, self.machine_name)

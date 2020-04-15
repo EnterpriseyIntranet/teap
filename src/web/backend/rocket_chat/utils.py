@@ -184,6 +184,14 @@ class LoggingRocketChatService(RocketChatService):
     def invite_user_to_channel(self, rocket_channel, rocket_user):
         return super().invite_user_to_channel(rocket_channel, rocket_user)
 
+    @log_rocket_action(event_name=Action.CREATE_ROCKET_GROUP)
+    def create_group(self, rocket_group):
+        return super().create_group(rocket_group)
+
+    @log_rocket_action(event_name=Action.INVITE_USER_TO_GROUP)
+    def invite_user_to_group(self, rocket_group, rocket_user):
+        return super().invite_user_to_group(rocket_group, rocket_user)
+
 
 def populate_service(logging_enabled):
     global rocket_service
