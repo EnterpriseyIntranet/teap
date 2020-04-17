@@ -31,9 +31,8 @@ def create_user():
     if not all([username, password, email, name]):
         return jsonify({"message": "username, password, email, name are required fields"}), 400
 
-    res = rutils.rocket_service.create_chat_user(
-            username, password, email, name,
-            require_password_change=False, verified=True)
+    res = rutils.rocket_service.create_user(
+            username, password, email, name)
     data = res.json()
 
     if res.status_code == 200 and data.get('success', True):
