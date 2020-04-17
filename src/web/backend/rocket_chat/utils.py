@@ -81,7 +81,9 @@ class RocketChatService(RocketMixin):
         Returns (response):
 
         """
-        return self.rocket.users_create(email, name, password, username, requirePasswordChange=True)
+        return self.rocket.users_create(
+                email, name, password, username,
+                requirePasswordChange=False, verified=True)
 
     def create_channel(self, room_name):
         """
