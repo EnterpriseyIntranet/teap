@@ -110,8 +110,14 @@ class RocketChatService(RocketMixin):
     def invite_user_to_channel(self, rocket_channel, rocket_user):
         return self.rocket.channels_invite(rocket_channel, rocket_user)
 
+    def kick_user_from_channel(self, rocket_channel, rocket_user):
+        return self.rocket.channels_kick(rocket_channel, rocket_user)
+
     def invite_user_to_group(self, rocket_group, rocket_user):
         return self.rocket.groups_invite(rocket_group, rocket_user)
+
+    def kick_user_from_group(self, rocket_group, rocket_user):
+        return self.rocket.groups_kick(rocket_group, rocket_user)
 
     def get_ids(self, username, channel_name=None, group_name=None):
         rocket_user = rocket_service.get_user_by_username(username)

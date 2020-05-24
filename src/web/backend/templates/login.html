@@ -1,0 +1,12 @@
+<h4>Log in</h4>
+<p>
+Log in to the system
+<form method="POST" action="{{ url_for('authenticate_by_ldap') }}">
+	{{ login_form.hidden_tag() }}
+	{{ login_form.next }}
+	{{ login_form.username.label }} {{ login_form.username(size=20) }} <br/>
+	{{ login_form.password.label }} {{ login_form.password(size=20) }} <br/>
+	<input type="submit" value="Go">
+</form>
+</p>
+

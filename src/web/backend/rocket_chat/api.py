@@ -3,6 +3,7 @@ from flask.views import MethodView
 
 from edap import ObjectDoesNotExist
 
+from .. import utils
 from ..ldap.utils import EdapMixin
 
 from . import utils as rutils
@@ -52,6 +53,7 @@ def create_channel():
 
 class UserRocketChannels(rutils.RocketMixin, MethodView):
 
+    @utils.authorize_only_hr_admins()
     def post(self, user_id):
         channel = request.json.get('channel')
         try:
@@ -63,6 +65,7 @@ class UserRocketChannels(rutils.RocketMixin, MethodView):
                                                            rocket_user=ids.user)
         return jsonify(res.json()), res.status_code
 
+    @utils.authorize_only_hr_admins()
     def delete(self, user_id, channel):
         try:
             ids = rutils.rocket_service.get_ids(user_id, channel_name=channel)
@@ -75,6 +78,7 @@ class UserRocketChannels(rutils.RocketMixin, MethodView):
 
 class UserRocketGroups(rutils.RocketMixin, MethodView):
 
+    @utils.authorize_only_hr_admins()
     def post(self, user_id):
         group = request.json.get('room')
         try:
@@ -86,6 +90,7 @@ class UserRocketGroups(rutils.RocketMixin, MethodView):
                                                          rocket_user=ids.user)
         return jsonify(res.json()), res.status_code
 
+    @utils.authorize_only_hr_admins()
     def delete(self, user_id, group):
         try:
             ids = rutils.rocket_service.get_ids(user_id, group_name=group)
@@ -98,6 +103,7 @@ class UserRocketGroups(rutils.RocketMixin, MethodView):
 
 class UserTeamsChatsViewSet(rutils.RocketMixin, EdapMixin, MethodView):
 
+    @utils.authorize_only_hr_admins()
     def post(self, uid, team_machine_name):
         """ Add user to team chats """
         from ..ldap.serializers import edap_team_schema
