@@ -106,6 +106,8 @@ class UserTeamsChatsViewSet(rutils.RocketMixin, EdapMixin, MethodView):
             franchise, division = team.get_team_components()
         except ObjectDoesNotExist:
             return jsonify({'message': 'Team corresponding franchise or division are not found'}), 404
+        except ValueError:
+            return jsonify({'message': 'Team doesnt have franchise and division components, nothing to do'}), 200
 
         try:
             ids_franchise = rutils.rocket_service.get_ids(uid, group_name=franchise.chat_name)

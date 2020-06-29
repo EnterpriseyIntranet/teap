@@ -158,7 +158,8 @@ class RocketChatService(RocketMixin):
         if res.status_code != 200:
             return None
         all_rooms = res.json()['groups']
-        good_rooms = [r for r in all_rooms if r["name"] == group_name]
+        # "name" is Rocket-machine name, "fname" is display name.
+        good_rooms = [r for r in all_rooms if r["fname"] == group_name]
         if not good_rooms:
             return None
         return good_rooms[0]
@@ -173,6 +174,14 @@ class RocketChatService(RocketMixin):
         if not users:
             return None
         return users[0]
+
+    def get_group_members(self, group_id):
+        res = self.rocket.groups_members(room_id=group_id)
+        return res
+
+    def get_channel_members(self, channel_id):
+        res = self.rocket.channels_members(room_id=channel_id)
+        return res
 
 
 class LoggingRocketChatService(RocketChatService):

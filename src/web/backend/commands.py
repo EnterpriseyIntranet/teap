@@ -26,6 +26,34 @@ def test():
     exit(rv)
 
 
+SPECIAL_ROOMS = {
+        "DDs + CEO": "ou=ddea+uid=ceo",
+        "FDs + CEO": "ou=cdea+uid=ceo",
+        "DDs + FDs + CEO": "ou=cdea+ou=ddea+uid=ceo",
+        "International Team": "team=international",
+}
+
+
+@click.command()
+def maintain():
+    """
+    Perform non-disruptive maintenance.
+    To be executed periodically and often.
+    """
+    from . import app
+    from . import model
+
+    from .rocket_chat import utils as rutils
+    from .ldap import utils as lutils
+    app = app.create_app()
+
+    with app.app_context():
+        rocket = rutils.RocketChatService()
+        edap = lutils.get_edap()
+
+        return model.maintain(edap, rocket)
+
+
 @click.command()
 @click.option('-f', '--fix-imports', default=False, is_flag=True,
               help='Fix imports using isort, before linting')
