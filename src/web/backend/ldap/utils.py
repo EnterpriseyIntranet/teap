@@ -75,3 +75,7 @@ def check_consistency():
         e.get_team('everybody')
     except edap.ObjectDoesNotExist:
         logger.warning('Edap Everybody team is missing')
+    try:
+        e.get_team('international')
+    except edap.ObjectDoesNotExist:
+        logger.warning('Edap International team is missing')

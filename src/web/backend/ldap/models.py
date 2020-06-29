@@ -344,7 +344,11 @@ class LdapUser(EdapMixin, User):
 
     def add_user_to_implied_structures(self, team_machine_name):
         from .serializers import edap_franchise_schema, edap_division_schema
-        franchise, division = self.edap.get_team_component_units(team_machine_name)
+        try:
+            franchise, division = self.edap.get_team_component_units(team_machine_name)
+        except ValueError:
+            # Nothing to do - the team doesn't have components
+            return
         franchise = edap_franchise_schema.load(franchise)
         division = edap_division_schema.load(division)
         franchise.add_user(self.uid)
@@ -578,6 +582,8 @@ class LdapTeam(EdapMixin, Team):
 
     EVERYBODY_MACHINE_NAME = 'everybody'
     EVERYBODY_DISPLAY_NAME = 'Everybody'
+    INTERNATIONAL_MACHINE_NAME = 'international'
+    INTERNATIONAL_DISPLAY_NAME = 'International'
     EVERYBODY_NEXTCLOUD_GROUP_ID = EVERYBODY_NEXTCLOUD_GROUP_ID
 
     def __init__(self, fqdn=None, *args, **kwargs):
@@ -607,6 +613,18 @@ class LdapTeam(EdapMixin, Team):
             edap.create_team(LdapTeam.EVERYBODY_MACHINE_NAME, LdapTeam.EVERYBODY_DISPLAY_NAME)
             everybody_team = edap.get_team(LdapTeam.EVERYBODY_MACHINE_NAME)
         return edap_team_schema.load(everybody_team)
+
+    @staticmethod
+    def get_international_team():
+        """ Get or create and return 'International' Team """
+        from .serializers import edap_team_schema
+        edap = get_edap()
+        try:
+            inter_team = edap.get_team(LdapTeam.INTERNATIONAL_MACHINE_NAME)
+        except ObjectDoesNotExist:
+            edap.create_team(LdapTeam.INTERNATIONAL_MACHINE_NAME, LdapTeam.INTERNATIONAL_DISPLAY_NAME)
+            inter_team = edap.get_team(LdapTeam.INTERNATIONAL_MACHINE_NAME)
+        return edap_team_schema.load(inter_team)
 
 
 def bootstrap_ldap():
