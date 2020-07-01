@@ -2,13 +2,27 @@ import configparser
 import logging
 
 
-def get_special_rooms():
+def get_config_parsed_ldap_ini():
     config = configparser.ConfigParser()
+    config.optionxform = str
     config.read('ldap.ini')
+    return config
+
+
+def get_special_rooms():
+    config = get_config_parsed_ldap_ini()
     if "ROOMS" in config.sections():
         return dict(config["ROOMS"].items())
     else:
         return dict()
+
+
+def get_groups_to_fill():
+    config = get_config_parsed_ldap_ini()
+    ret = dict()
+    if "TEAMS" in config.sections():
+        ret["teams"] = config["TEAMS"].items()
+    return ret
 
 
 def _spec_to_uids(edap, spec):
@@ -104,13 +118,31 @@ def get_franchise_group_id(rocket, machine_name, display_name):
     return group["_id"]
 
 
-def maintain(edap, rocket):
+def fill_teams(edap, teams):
+    for name, spec in teams:
+        intended_members = _spec_to_uids(edap, spec)
+        for uid in intended_members:
+            try:
+                edap.make_user_member_of_team(uid, name)
+            except Exception as exc:
+                msg = f"Error adding {uid} to team {name}: {exc}"
+                logging.error(msg)
+
+
+def populate_groups(edap):
+    groups_to_fill = get_groups_to_fill()
+    fill_teams(edap, groups_to_fill["teams"])
+
+
+def populate_special_rooms(edap, rocket):
     special_rooms = get_special_rooms()
     _ensure_that_groups_exist(rocket, special_rooms)
     for r, spec in special_rooms.items():
         intended_members = _spec_to_uids(edap, spec)
         _place_users_into_special_rooms(rocket, r, intended_members)
 
+
+def populate_franchise_rooms(edap, rocket):
     franchises = get_franchises_mn_dn(edap)
     for machine_name, display_name in franchises:
         chat_group_id = get_franchise_group_id(rocket, machine_name, display_name)
@@ -121,6 +153,16 @@ def maintain(edap, rocket):
         users_to_invite = franchise_members.difference(users_already_in_franchise_room)
         logging.info(f"f {display_name}: current: {users_already_in_franchise_room}, adding {users_to_invite}")
         _add_users_to_group(rocket, chat_group_id, users_to_invite)
+
+
+def populate_rooms(edap, rocket):
+    populate_special_rooms(edap, rocket)
+    populate_franchise_rooms(edap, rocket)
+
+
+def maintain(edap, rocket):
+    populate_groups(edap)
+    populate_rooms(edap, rocket)
 
     from . import ldap
     ldap.models.LdapTeam.get_international_team()
