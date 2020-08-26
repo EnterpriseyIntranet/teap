@@ -1,6 +1,11 @@
 """The app module, containing the app factory function."""
 import flask
 
+import wtforms
+import wtforms.validators as vali
+import flask_wtf
+import flask_login
+
 from . import commands, core, nextcloud, rocket_chat, ldap, actions, saml
 from . import extensions, utils
 
@@ -22,6 +27,7 @@ def create_app(config_object='backend.settings'):
     register_shellcontext(app)
     register_commands(app)
     initialize_modules(app)
+    register_auth(app)
     return app
 
 
@@ -37,6 +43,66 @@ def register_extensions(app):
         extensions.migrate.init_app(app, extensions.db)
     extensions.login_manager.init_app(app)
     return None
+
+
+LOGINS = dict(
+        # saml=dict(login_endpoint="saml.login", logout_endpoint="saml.logout"),
+        saml=dict(login_endpoint="flask_saml2_sp.login", logout_endpoint="flask_saml2_sp.logout"),
+        ldap=dict(login_endpoint="login_by_ldap", logout_endpoint="general_logout"),
+)
+
+
+def get_auth_method(app):
+    if ("SAML2_SP" in app.config
+            and "certificate" in app.config["SAML2_SP"]
+            and "private_key" in app.config["SAML2_SP"]):
+        return "saml"
+    return "ldap"
+
+
+def register_auth(app):
+    @app.route("/login")
+    def login():
+        method = get_auth_method(app)
+        return flask.redirect(flask.url_for(LOGINS[method]["login_endpoint"], next=flask.request.args.get("next")))
+
+    @app.route("/ldap_creds", methods=["POST"])
+    def authenticate_by_ldap():
+        data = flask.request.form
+        uid = data.get("username")
+        password = data.get("password")
+        next_page = data.get("next_page")
+        return utils._login_by_ldap(uid, password, next_page)
+
+    @app.route("/logout")
+    def logout():
+        method = get_auth_method(app)
+        return flask.redirect(LOGINS[method]["logout_endpoint"])
+
+    @app.route("/general_logout")
+    def general_logout():
+        return utils.general_logout()
+
+    @app.route("/ldap_login")
+    def login_by_ldap():
+        form = LoginForm()
+        form.next_page.data = flask.request.args.get("next")
+        return flask.render_template(
+                "templates/login.html",
+                target_url=flask.url_for("authenticate_by_ldap"), login_form=form)
+
+
+class LoginForm(flask_wtf.FlaskForm):
+    next_page = wtforms.HiddenField("next")
+    username = wtforms.StringField(
+            "Your username", validators=[vali.DataRequired()])
+    password = wtforms.PasswordField(
+            "Your password", validators=[vali.DataRequired()])
+
+
+def redirect_to_login():
+    login_url = "/login"
+    return flask.redirect(login_url)
 
 
 def register_blueprints(app):

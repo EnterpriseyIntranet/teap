@@ -3,13 +3,13 @@ from flask.views import MethodView
 
 from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 
-from ..utils import EncoderWithBytes
+from .. import utils
 from ..ldap.utils import EdapMixin
 
 from .utils import get_nextcloud, flush_nextcloud_ldap_cache
 
 blueprint = Blueprint('nextcloud_api', __name__, url_prefix='/api')
-blueprint.json_encoder = EncoderWithBytes
+blueprint.json_encoder = utils.EncoderWithBytes
 
 ALLOWED_GROUP_TYPES = ['divisions', 'countries', 'other']
 
@@ -40,6 +40,7 @@ class GroupListViewSet(NextCloudMixin,
         res = self.edap.get_groups(search=search)
         return jsonify([obj for obj in res]), 200
 
+    @utils.authorize_only_hr_admins()
     def post(self, group_name=None):
         """ Create group """
         group_name = request.json.get('group_name')
@@ -49,6 +50,7 @@ class GroupListViewSet(NextCloudMixin,
         flush_nextcloud_ldap_cache(self.nextcloud)
         return self.nxc_response(res), 201
 
+    @utils.authorize_only_hr_admins()
     def delete(self):
         """ Delete group """
         groups = request.json.get('groups')
@@ -84,6 +86,7 @@ class GroupViewSet(NextCloudMixin, EdapMixin, MethodView):
             return jsonify({'message': f'More than 1 group found'}), 409
         return jsonify(res[0])
 
+    @utils.authorize_only_hr_admins()
     def delete(self, group_name, username=None):
         """ Delete group """
         res = self.nextcloud.delete_group(group_name)
@@ -98,6 +101,7 @@ class GroupSubadminViewSet(NextCloudMixin, MethodView):
         res = self.nextcloud.get_subadmins(group_name)
         return self.nxc_response(res)
 
+    @utils.authorize_only_hr_admins()
     def post(self, group_name):
         """ Create subadmin for group"""
         username = request.json.get('username')
@@ -108,6 +112,7 @@ class GroupSubadminViewSet(NextCloudMixin, MethodView):
         res = self.nextcloud.create_subadmin(username, group_name)
         return self.nxc_response(res), 201
 
+    @utils.authorize_only_hr_admins()
     def delete(self, group_name, username):
         """ Delete subadmin """
         if not self.nextcloud.get_group(group_name).is_ok:

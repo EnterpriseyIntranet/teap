@@ -3,7 +3,7 @@ from flask.views import MethodView
 from edap import ObjectDoesNotExist, ConstraintError, MultipleObjectsFound
 from marshmallow import ValidationError
 
-from ..utils import EncoderWithBytes
+from .. import utils
 from .serializers import edap_user_schema, edap_users_schema, edap_franchise_schema, edap_franchises_schema, \
     edap_divisions_schema, edap_teams_schema, edap_division_schema
 from .api_serializers import api_franchise_schema, api_user_schema, api_users_schema, api_franchises_schema, \
@@ -13,7 +13,7 @@ from .models import LdapDivision, LdapFranchise, LdapUser
 from .utils import get_config_divisions, merge_divisions, EdapMixin
 
 blueprint = Blueprint('divisions_api', __name__, url_prefix='/api/ldap/')
-blueprint.json_encoder = EncoderWithBytes
+blueprint.json_encoder = utils.EncoderWithBytes
 
 
 @blueprint.errorhandler(ObjectDoesNotExist)
@@ -29,6 +29,7 @@ class UserListViewSet(EdapMixin, MethodView):
         data = edap_users_schema.load(res)
         return jsonify(api_users_schema.dump(data))
 
+    @utils.authorize_only_hr_admins()
     def post(self):
         """ Create user """
 
@@ -58,6 +59,11 @@ class UserRetrieveViewSet(EdapMixin,
             return jsonify({'message': 'More than 1 user found'}), 409
         except ObjectDoesNotExist:
             return jsonify({'message': 'User does not exist'}), 404
+
+        auth_err = utils.auth_err_if_user_other_than(username) and utils.auth_err_if_user_not_hr_admin()
+        if auth_err:
+            return auth_err
+
         user_groups = self.edap.get_user_groups(username)
         user = {
             **api_user_schema.dump(user),
@@ -68,6 +74,7 @@ class UserRetrieveViewSet(EdapMixin,
         }
         return jsonify(user)
 
+    @utils.authorize_only_hr_admins()
     def delete(self, username):
         """ Delete user """
         result = dict(success=True)
@@ -84,6 +91,7 @@ class UserRetrieveViewSet(EdapMixin,
 class UserGroupViewSet(EdapMixin,
                        MethodView):
 
+    @utils.authorize_only_hr_admins()
     def post(self, username):
         """ Add user to group """
         group_fqdn = request.json.get('fqdn')
@@ -95,6 +103,7 @@ class UserGroupViewSet(EdapMixin,
             return jsonify({'message': str(e)}), 404
         return jsonify({'message': 'Success'}), 200
 
+    @utils.authorize_only_hr_admins()
     def delete(self, username):
         """ Remove user from group """
         group_fqdn = request.json.get('fqdn')
@@ -116,6 +125,7 @@ class ConfigDivisionsListViewSet(EdapMixin, MethodView):
         divisions = merge_divisions(config_divisions, ldap_divisions)
         return jsonify({'divisions': divisions})
 
+    @utils.authorize_only_hr_admins()
     def post(self):
         """ Create division that present in config file, but not in ldap """
         div_machine_name = request.json.get('machine_name')
@@ -142,6 +152,7 @@ class DivisionsViewSet(EdapMixin, MethodView):
 
 class DivisionViewSet(EdapMixin, MethodView):
 
+    @utils.authorize_only_hr_admins()
     def delete(self, division_name):
         self.edap.delete_division(division_name)
         return jsonify({'message': 'Deleted'}), 202
@@ -155,6 +166,7 @@ class FranchisesViewSet(EdapMixin, MethodView):
         franchises = edap_franchises_schema.load(self.edap.get_franchises(search))
         return jsonify(api_franchises_schema.dump(franchises))
 
+    @utils.authorize_only_hr_admins()
     def post(self):
         franchise = api_franchise_schema.load(request.json)
         try:
@@ -176,6 +188,7 @@ def suggest_franchise_name(franchise_machine_name):
 
 class FranchiseFoldersViewSet(EdapMixin, MethodView):
 
+    @utils.authorize_only_hr_admins()
     def post(self, franchise_machine_name):
         franchise = edap_franchise_schema.load(self.edap.get_franchise(franchise_machine_name))
         res = franchise.create_folder(franchise.display_name)
@@ -194,6 +207,7 @@ class TeamsViewSet(EdapMixin, MethodView):
 
 class TeamViewSet(EdapMixin, MethodView):
 
+    @utils.authorize_only_hr_admins()
     def delete(self, machine_name):
         """ Delete single team """
         self.edap.delete_team(machine_name)
@@ -202,6 +216,7 @@ class TeamViewSet(EdapMixin, MethodView):
 
 class UserFranchisesViewSet(EdapMixin, MethodView):
 
+    @utils.authorize_only_hr_admins()
     def post(self, uid):
         """ add user to franchise """
         user = edap_user_schema.load(self.edap.get_user(uid))  # to check if user exists, or return 404
@@ -210,6 +225,7 @@ class UserFranchisesViewSet(EdapMixin, MethodView):
         franchise.add_user(uid)
         return jsonify({'message': 'success'}), 200
 
+    @utils.authorize_only_hr_admins()
     def delete(self, uid):
         user = edap_user_schema.load(self.edap.get_user(uid))
         machine_name = request.json.get('machineName')
@@ -219,6 +235,7 @@ class UserFranchisesViewSet(EdapMixin, MethodView):
 
 class UserDivisionsViewSet(EdapMixin, MethodView):
 
+    @utils.authorize_only_hr_admins()
     def post(self, uid):
         """ add user to team """
         user = edap_user_schema.load(self.edap.get_user(uid))  # to check if user exists, or return 404
@@ -227,6 +244,7 @@ class UserDivisionsViewSet(EdapMixin, MethodView):
         division.add_user(uid)
         return jsonify({'message': 'success'}), 200
 
+    @utils.authorize_only_hr_admins()
     def delete(self, uid):
         user = edap_user_schema.load(self.edap.get_user(uid))
         machine_name = request.json.get('machineName')

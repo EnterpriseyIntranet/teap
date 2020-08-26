@@ -9,7 +9,7 @@ blueprint = Blueprint('core', __name__)
 @blueprint.route('/<path:path>')
 # @login_required
 def index(path):
-    if current_app.debug:
+    if False and current_app.debug:
         import requests
         return requests.get('http://localhost:8081/{}'.format(path)).text
     return render_template('index.html')
