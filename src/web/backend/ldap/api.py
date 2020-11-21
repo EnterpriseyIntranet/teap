@@ -42,7 +42,7 @@ class UserListViewSet(EdapMixin, MethodView):
         user = LdapUser(**user_data)
         try:
             res = user.create(password=password)
-        except ConstraintError as e:
+        except Exception as e:
             return jsonify({'message': "Failed to create user. {}".format(e)}), 400
 
         return jsonify(res)

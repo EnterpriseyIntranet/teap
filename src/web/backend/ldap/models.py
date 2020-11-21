@@ -1,10 +1,14 @@
 """ Models to work with ldap objects, operated by EDAP library """
+import gzip
+
 from edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
+from password_strength import PasswordStats
 
 from .utils import EdapMixin, get_edap, get_config_divisions
 from ..nextcloud.utils import get_nextcloud, get_group_folder, flush_nextcloud_ldap_cache
 from ..rocket_chat import utils as rutils
+from ..settings import FREQUENT_PASSWORDS
 
 # TODO: separate layer with edap from data models
 NEXTCLOUD_ADMIN_GROUP = "admin"
@@ -31,6 +35,25 @@ def _assure_folder_exists_with_permissions(nxc, folder_path, all_group_ids_permi
                 str(permission.value))
 
     return result
+
+
+def get_password_weaknesses(pw, username=None):
+    errors = []
+    stats = PasswordStats(pw)
+    LEN = 10
+    if stats.length < LEN:
+        errors.append(f"Password is too short - go for something longer than {LEN} characters")
+    if stats.strength() < 0.55 or stats.entropy_bits < 30:
+        errors.append("Password is too simple - make up something longer or more complex")
+    if pw in FREQUENT_PASSWORDS:
+        errors.append("This password is already on a list of common passwords, make up something else")
+
+    if username and username in pw.lower():
+        errors.append("Your username is present in the password, make up something else")
+
+    if not pw.isascii():
+        errors.append("Don't use characters outside of the US keyboard in your password - in other words, use only ASCII printable characters in your password definition")
+    return errors
 
 
 class GroupChatMixin:
@@ -250,6 +273,15 @@ class LdapUser(EdapMixin, User):
 
     def add_to_edap(self, password):
         """ Create user entity in ldap """
+        weaknesses = get_password_weaknesses(password)
+        if weaknesses:
+            msg = "The password has following weaknesses: " + ". ".join(weaknesses)
+            raise ValueError(msg)
+        ret = self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail, self.picture_bytes)
+        return ret
+
+    def fore_add_to_edap(self, password):
+        """ Create user entity in ldap without worrying about optional constraints"""
         ret = self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail, self.picture_bytes)
         return ret
 
@@ -270,6 +302,16 @@ class LdapUser(EdapMixin, User):
         return {
             'rocket': rocket_data
         }
+
+    def modify_password(self, new_value):
+        weaknesses = get_password_weaknesses(new_value)
+        if weaknesses:
+            msg = "The password has following weaknesses: " + ". ".join(weaknesses)
+            raise ValueError(msg)
+        return self.edap.modify_user(self.uid, {"userPassword": new_value})
+
+    def force_modify_password(self, new_value):
+        return self.edap.modify_user(self.uid, {"userPassword": new_value})
 
     def modify(self, what, new_value):
         """

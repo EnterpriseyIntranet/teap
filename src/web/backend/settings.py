@@ -28,6 +28,25 @@ DEBUG_TB_INTERCEPT_REDIRECTS = False
 CACHE_TYPE = 'simple'  # Can be "memcached", "redis", etc.
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+FREQUENT_PASSWORDS = set()
+
+FREQUENT_PASSWORDS_FILENAME = env.str("FREQUENT_PASSWORDS", "")
+if FREQUENT_PASSWORDS_FILENAME:
+    try:
+        if FREQUENT_PASSWORDS_FILENAME.endswith("gz"):
+            with gzip.open(FREQUENT_PASSWORDS_FILENAME, "rt") as f:
+                for line in f:
+                    FREQUENT_PASSWORDS.add(line.rstrip())
+        else:
+            with open(FREQUENT_PASSWORDS_FILENAME, "r") as f:
+                for line in f:
+                    FREQUENT_PASSWORDS.add(line.rstrip())
+    except Exception as exc:
+        msg = (
+            f"Tried to load list of frequent passwords from {FREQUENT_PASSWORDS_FILENAME}"
+            ", failed: {str(exc)}")
+        print(msg, sys.stderr)
+
 # NEXTCLOUD
 NEXTCLOUD_HOST = env.str('NEXTCLOUD_HOST')
 NEXTCLOUD_USER = env.str('NEXTCLOUD_USER')
