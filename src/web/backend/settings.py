@@ -6,6 +6,7 @@ For local development, use a .env file to set
 environment variables.
 """
 import sys
+import gzip
 
 from environs import Env
 
@@ -34,18 +35,18 @@ FREQUENT_PASSWORDS_FILENAME = env.str("FREQUENT_PASSWORDS", "")
 if FREQUENT_PASSWORDS_FILENAME:
     try:
         if FREQUENT_PASSWORDS_FILENAME.endswith("gz"):
-            with gzip.open(FREQUENT_PASSWORDS_FILENAME, "rt") as f:
+            with gzip.open(FREQUENT_PASSWORDS_FILENAME, "rt", encoding="utf-8") as f:
                 for line in f:
                     FREQUENT_PASSWORDS.add(line.rstrip())
         else:
-            with open(FREQUENT_PASSWORDS_FILENAME, "r") as f:
+            with open(FREQUENT_PASSWORDS_FILENAME, "r", encoding="utf-8") as f:
                 for line in f:
                     FREQUENT_PASSWORDS.add(line.rstrip())
     except Exception as exc:
         msg = (
             f"Tried to load list of frequent passwords from {FREQUENT_PASSWORDS_FILENAME}"
-            ", failed: {str(exc)}")
-        print(msg, sys.stderr)
+            f", failed: {str(exc)}")
+        print(msg, file=sys.stderr)
 
 # NEXTCLOUD
 NEXTCLOUD_HOST = env.str('NEXTCLOUD_HOST')
