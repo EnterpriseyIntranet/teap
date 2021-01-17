@@ -160,7 +160,10 @@ class RocketChatService(RocketMixin):
 
     def get_group_by_name(self, group_name):
         """ Get rocket group json object by it's name """
-        res = self.rocket.groups_list_all()
+        # Queries are quite unreliable
+        query = f'{{"fname": {{"$eq": "{group_name}"}}}}'
+        fields = '{"fname": 1}'
+        res = self.rocket.groups_list_all(count=0, fields=fields)
         if res.status_code != 200:
             return None
         all_rooms = res.json()['groups']
@@ -168,7 +171,8 @@ class RocketChatService(RocketMixin):
         good_rooms = [r for r in all_rooms if r["fname"] == group_name]
         if not good_rooms:
             return None
-        return good_rooms[0]
+        good_room = good_rooms[0]
+        return good_room
 
     def get_user_by_username(self, username):
         """ Get rocket user json object by it's username """

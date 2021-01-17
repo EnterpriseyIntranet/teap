@@ -42,6 +42,7 @@ def register_extensions(app):
         extensions.db.init_app(app)
         extensions.migrate.init_app(app, extensions.db)
     extensions.login_manager.init_app(app)
+    extensions.mail.init_app(app)
     return None
 
 

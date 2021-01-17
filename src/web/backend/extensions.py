@@ -4,12 +4,14 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_saml2 import sp
+from flask_mail import Mail
 
 
 csrf_protect = CSRFProtect()
 login_manager = flask_login.LoginManager()
 db = SQLAlchemy()
 migrate = Migrate()
+mail = Mail()
 
 
 class User(flask_login.UserMixin):
