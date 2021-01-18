@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		  <meta charset="utf-8">
+
+		    <title>Reset Password</title>
+		      <meta name="description" content="The HTML5 Herald">
+		        <meta name="author" content="SitePoint">
+
+			  <link rel="stylesheet" href="css/styles.css?v=1.0">
+
+	</head>
+
+	<body>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+	<h4>messages</h4>
+    <ul class=flashes>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+	<h4>Reset</h4>
+	<p>
+	Confirm your username, and define your new password.
+	Try to pick a longer password, so it passes strength checks. See a <a href="https://www.pcmag.com/how-to/simple-tricks-to-remember-insanely-secure-passwords">pcmag password article</a> if you need inspiration.
+	This password reset page will be valid for approx. {{ time_remaining }} s.
+	</p>
+	<p>
+	<form method="POST" action="{{ url_for('divisions_api.reset_api') }}"/>
+		{{ details_form.hidden_tag() }}
+		{{ details_form.username.label }} {{ details_form.username(size=40) }} <br/>
+		{{ details_form.new_password.label }} {{ details_form.new_password(size=20) }} <br/>
+		{{ details_form.new_password_confirm.label }} {{ details_form.new_password_confirm(size=20) }} <br/>
+		<input type="submit" value="Go">
+	</form>
+	</p>
+
+	</body>
+</html>
+
+

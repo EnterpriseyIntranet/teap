@@ -79,3 +79,42 @@ def check_consistency():
         e.get_team('international')
     except edap.ObjectDoesNotExist:
         logger.warning('Edap International team is missing')
+
+
+from .. import extensions
+import flask_mail
+import flask
+import jwt
+import time
+
+
+def send_password_reset_email(to, data):
+    msg = flask_mail.Message("password recovery", sender="intranet@cspii.org", recipients=[to])
+    expiry_s = flask.current_app.config["PW_RESET_EXPIRY_SEC"]
+    token = get_reset_password_token(data, expiry_s)
+    msg.body = flask.render_template(
+        "templates/mail_pw_reset.txt", data=data, token=token,
+        valid_for_minutes=expiry_s // 60)
+    extensions.mail.send(msg)
+
+
+def get_reset_password_token(data, expires_in):
+    more_data = {
+        'exp': time.time() + expires_in,
+    }
+    more_data.update(data)
+    return jwt.encode(
+        more_data,
+        current_app.config['SECRET_KEY'], algorithm='HS256')
+
+
+def verify_reset_password_token(token, uid):
+    try:
+        data = jwt.decode(
+            token, current_app.config['SECRET_KEY'],
+            algorithms=['HS256'])
+    except Exception as exc:
+        print(str(exc))
+        return False
+    implied_uid = data["username"]
+    return str(implied_uid) == str(uid)

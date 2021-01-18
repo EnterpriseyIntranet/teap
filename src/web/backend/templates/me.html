@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		  <meta charset="utf-8">
+
+		    <title>My Details</title>
+		      <meta name="description" content="The HTML5 Herald">
+		        <meta name="author" content="SitePoint">
+
+			  <link rel="stylesheet" href="css/styles.css?v=1.0">
+
+	</head>
+
+	<body>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+	<h4>messages</h4>
+    <ul class=flashes>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+	<h4>My details</h4>
+	<p>
+	Hello {{ user.given_name }} {{ user.surname }} a.k.a. <tt>{{ user.uid }}, welcome!</tt>.
+	</p>
+	<p>
+	Your primary e-mail is <tt>{{ user.mail }}</tt>.
+	</p>
+	<p>
+	{% if user.mail_aliases %}
+	You have following e-mail aliases:
+	<ul>
+		{% for alias in user.mail_aliases %}
+		<li><tt>{{ alias }}</tt></li>
+		{% endfor %}
+	</ul>
+	{% else %}
+	You have no e-mail aliases.
+	{% endif %}
+	</p>
+	{% if user.shared_inboxes %}
+	<p>
+	You have following shared inboxes:
+	<ul>
+		{% for email in user.shared_inboxes %}
+		<li><tt>{{ email }}</tt></li>
+		{% endfor %}
+	</ul>
+	</p>
+	{% endif %}
+	<p>
+	You can change contents of fields below by yourself..
+	In order to change anything, you need to specify your current password.
+	<form method="POST" enctype="multipart/form-data" action="{{ bp_prefix }}users/{{ user.uid }}"/>
+		{{ details_form.hidden_tag() }}
+		{{ details_form.name.label }} {{ details_form.name(size=40) }} <br/>
+		{{ details_form.surname.label }} {{ details_form.surname(size=40) }} <br/>
+		{{ details_form.new_password.label }} {{ details_form.new_password(size=20) }} <br/>
+		{{ details_form.new_password_confirm.label }} {{ details_form.new_password_confirm(size=20) }} <br/>
+		{{ details_form.avatar.label }} {{ details_form.avatar() }} <br/>
+		{{ details_form.password.label }} {{ details_form.password(size=20) }} <br/>
+		<input type="submit" value="Go">
+	</form>
+	</p>
+
+	</body>
+</html>

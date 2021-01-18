@@ -262,7 +262,7 @@ class LdapUser(EdapMixin, User):
         ret.mail = edap_dict.get("mail", [b""])[0].decode("UTF-8")
         ret.surname = edap_dict.get("sn", [b""])[0].decode("UTF-8")
         ret.picture_bytes = edap_dict.get("jpegPhoto", [None])[0]
-        ret.mail_aliases = [a.decode("UTF-8") for a in edap_dict.get("mailAlias", [b""])]
+        ret.mail_aliases = [a.decode("UTF-8") for a in edap_dict.get("mailAlias", [])]
         return ret
 
     def __repr__(self):

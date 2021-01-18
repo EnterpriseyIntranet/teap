@@ -32,13 +32,14 @@ RUN true \
 	&& (cd frontend  && npm run build) \
         && true
 
+COPY env .env
+
 COPY autoapp.py .
 COPY backend backend
 COPY migrations migrations
-
-COPY env .env
+COPY ldap.ini .
 
 EXPOSE 8080
 
-# CMD ["flask", "run", "--host", "0.0.0.0", "--port", "8080"]
-CMD ["gunicorn", "autoapp:app", "-b", ":8080", "--reload", "--log-file=-", "--capture-output", "--error-logfile=-"]
+CMD ["flask", "run", "--host", "0.0.0.0", "--port", "8080"]
+# CMD ["gunicorn", "autoapp:app", "-b", ":8080", "--reload", "--log-file=-", "--capture-output", "--error-logfile=-"]

@@ -1,3 +1,5 @@
+import time
+
 from flask import Blueprint, jsonify, request
 from flask.views import MethodView
 from edap import ObjectDoesNotExist, ConstraintError, MultipleObjectsFound
@@ -10,7 +12,7 @@ from .api_serializers import api_franchise_schema, api_user_schema, api_users_sc
     api_divisions_schema, api_teams_schema
 
 from .models import LdapDivision, LdapFranchise, LdapUser
-from .utils import get_config_divisions, merge_divisions, EdapMixin
+from .utils import get_config_divisions, merge_divisions, EdapMixin, send_password_reset_email, get_edap, verify_reset_password_token
 
 blueprint = Blueprint('divisions_api', __name__, url_prefix='/api/ldap/')
 blueprint.json_encoder = utils.EncoderWithBytes
@@ -48,6 +50,82 @@ class UserListViewSet(EdapMixin, MethodView):
         return jsonify(res)
 
 
+class UserResetViewSet(EdapMixin, MethodView):
+    def post(self):
+        try:
+            self.handle_reset()
+            flask.flash("Password set successfuly, you may log in now.")
+        except ValueError as exc:
+            flask.flash(f"Error setting password: {str(exc)}")
+        return flask.redirect(flask.url_for("divisions_api.details_change"))
+
+    def handle_reset(self):
+        form = ResetPasswordForm()
+        if not form.validate_on_submit():
+            raise ValueError("The request is invalid.")
+
+        username = form.username.data
+        try:
+            user = LdapUser.get_from_edap(username)
+        except MultipleObjectsFound:
+            raise ValueError(f'More than 1 user(s) {username} found')
+        except ObjectDoesNotExist:
+            raise ValueError(f'User {username} does not exist')
+
+        if uid := flask_login.current_user.get_id():
+            if uid != username:
+                raise ValueError(f"You are logged in as '{uid}', which is an another user than '{username}'.")
+
+        if not verify_reset_password_token(form.token.data, username):
+            raise ValueError("The request is weird.")
+
+        user.modify_password(form.new_password.data)
+
+    def get(self, token):
+        # Render a form to reset password
+        form = ResetPasswordForm()
+        form.token.data = token
+        return flask.render_template(
+                "templates/reset_pw.html",
+                details_form=form,
+                token=token)
+
+
+class UserAdministrationViewSet(EdapMixin,
+                                MethodView):
+    @utils.authorize_only_hr_admins()
+    def get(self):
+        # Render a form to send email
+
+        return flask.render_template(
+                "templates/send_reset.html",
+                details_form=SendResetEmailForm())
+
+    @utils.authorize_only_hr_admins()
+    def post(self):
+        # Send reset email
+        form = SendResetEmailForm()
+        if not form.validate_on_submit():
+            return
+        recovery_email = form.email.data
+        username = form.username.data
+        now = time.time()
+        try:
+            user = edap_user_schema.load(self.edap.get_user(username))
+        except MultipleObjectsFound:
+            return jsonify({'message': 'More than 1 user found'}), 409
+        except ObjectDoesNotExist:
+            return jsonify({'message': f'User {username} does not exist'}), 404
+
+        data = dict(
+                username=username,
+                now=now,
+                )
+        send_password_reset_email(to=recovery_email, data=data)
+        flask.flash("Sent password recovery email")
+        return flask.redirect(flask.url_for("divisions_api.admin_api"))
+
+
 class UserRetrieveViewSet(EdapMixin,
                           MethodView):
     """ ViewSet for single user """
@@ -73,6 +151,58 @@ class UserRetrieveViewSet(EdapMixin,
             "teams": api_teams_schema.dump(user.get_teams())
         }
         return jsonify(user)
+
+    def post(self, username):
+        auth_err = utils.auth_err_if_user_other_than(username) and utils.auth_err_if_user_not_hr_admin()
+        if auth_err:
+            return auth_err
+
+        form = UserForm()
+
+        if not form.validate_on_submit():
+            all_errors = []
+            for errors in form.errors.values():
+                all_errors.extend(errors)
+            all_errors_str = ", ".join(all_errors)
+            msg = f"Form validation error: {all_errors_str}"
+            flask.flash(msg)
+
+            return flask.redirect(flask.url_for("divisions_api.details_change"))
+
+        form_dict = request.form
+
+        current_password = form_dict.get("password")
+        user = LdapUser.get_from_edap(username)
+
+        if not user.check_password(current_password):
+            msg = "Password mismatch, specify your current password to make any changes."
+            flask.flash(msg)
+            return flask.redirect(flask.url_for("divisions_api.details_change"))
+
+        if form_dict.get("new_password"):
+            try:
+                user.modify_password(form_dict["new_password"])
+            except Exception as exc:
+                msg = f"Couldn't change password: {str(exc)}"
+                flask.flash(msg)
+
+        if form.avatar.data:
+            user.modify("picture_bytes", form.avatar.data)
+
+        specified_data = set(form_dict.keys())
+        modifiable_data = {
+            "name",
+            "surname",
+        }
+        for key in modifiable_data.intersection(specified_data):
+            if not (value := form_dict.get(key)):
+                continue
+
+            msg = f"Changed {key} to {value}"
+            flask.flash(msg)
+
+            user.modify(key, value)
+        return flask.redirect(flask.url_for("divisions_api.details_change"))
 
     @utils.authorize_only_hr_admins()
     def delete(self, username):
@@ -268,13 +398,105 @@ class UserTeamsViewSet(EdapMixin, MethodView):
         return jsonify({'message': 'success'}), 202
 
 
+import io
+
+import flask
+import flask_wtf
+import flask_wtf.file
+import flask_login
+import wtforms
+import PIL.Image
+
+
+def convert_image_bytes_to_jpeg(some_bytes, max_size=128):
+    if not some_bytes:
+        return some_bytes
+    in_buf = io.BytesIO()
+    in_buf.write(some_bytes.read())
+
+    img = PIL.Image.open(in_buf)
+    img = img.convert("RGB")
+    img.thumbnail((max_size, max_size), PIL.Image.ANTIALIAS)
+
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG')
+    img_bytes = buf.getvalue()
+    return img_bytes
+
+
+class SendResetEmailForm(flask_wtf.FlaskForm):
+    username = wtforms.StringField(
+            "Target's Username")
+    email = wtforms.StringField(
+            "Target's email", [wtforms.validators.Email("You have to provide a valid e-mail address")])
+
+
+class ResetPasswordForm(flask_wtf.FlaskForm):
+    token = wtforms.HiddenField(
+            "reset token")
+    username = wtforms.StringField(
+            "Your Username",
+            [wtforms.validators.DataRequired("The user ID is missing")])
+    new_password = wtforms.PasswordField(
+            "Your new password",
+            [wtforms.validators.EqualTo('new_password_confirm', message='Passwords must match')])
+    new_password_confirm = wtforms.PasswordField(
+            "Your new password (confirm)")
+
+
+class UserForm(flask_wtf.FlaskForm):
+    name = wtforms.StringField(
+            "Your Name")
+    surname = wtforms.StringField(
+            "Your Surname")
+    new_password = wtforms.PasswordField(
+            "Your new password",
+            [wtforms.validators.EqualTo('new_password_confirm', message='Passwords must match')])
+    new_password_confirm = wtforms.PasswordField(
+            "Your new password (confirm)")
+    avatar = flask_wtf.file.FileField(
+            "Your new avatar", filters=[convert_image_bytes_to_jpeg])
+    password = wtforms.PasswordField(
+            "Your current password", [wtforms.validators.DataRequired("You need to specify password to change settings")])
+
+
+@blueprint.route("/me", methods=["GET"])
+def details_change():
+    form = UserForm()
+    edap = get_edap()
+    try:
+        uid = flask_login.current_user.id
+    except AttributeError:
+        return flask.redirect(flask.url_for(f"login", next=flask.url_for("divisions_api.details_change")))
+
+    user = LdapUser.get_from_edap(uid)
+
+    form.name.data = user.given_name
+    form.surname.data = user.surname
+
+    return flask.render_template(
+            "templates/me.html",
+            user=user,
+            details_form=form,
+            bp_prefix=blueprint.url_prefix)
+
+
 user_list_view = UserListViewSet.as_view('users_api')
 blueprint.add_url_rule('/users/', view_func=user_list_view, methods=['GET', 'POST'])
 
 user_view = UserRetrieveViewSet.as_view('user_api')
 blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['GET', 'DELETE'])
+blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['POST'])
 blueprint.add_url_rule('/users/<username>', view_func=user_view, methods=['PATCH'])
 blueprint.add_url_rule('/users/<username>/<action>', view_func=user_view, methods=['PATCH'])
+
+user_admin = UserAdministrationViewSet.as_view('admin_api')
+blueprint.add_url_rule('/send_reset_pw', view_func=user_admin, methods=['POST'])
+blueprint.add_url_rule('/send_reset_pw', view_func=user_admin, methods=['GET'])
+
+user_reset = UserResetViewSet.as_view('reset_api')
+blueprint.add_url_rule('/reset_pw/<token>', view_func=user_reset, methods=['GET'])
+blueprint.add_url_rule('/reset_pw', view_func=user_reset, methods=['POST'])
 
 user_group_view = UserGroupViewSet.as_view('user_groups_api')
 blueprint.add_url_rule('/users/<username>/groups/', view_func=user_group_view, methods=['POST', 'DELETE'])

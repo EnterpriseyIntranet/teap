@@ -40,4 +40,9 @@ rocketchat_API==0.*
 # EDAP
 -e git://github.com/EnterpriseyIntranet/edap#egg=edap
 
+# email auth
+flask-mail
+pyjwt
+pillow
+
 password-strength
