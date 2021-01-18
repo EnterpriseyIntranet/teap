@@ -52,7 +52,6 @@ class UserListViewSet(EdapMixin, MethodView):
 
 class UserResetViewSet(EdapMixin, MethodView):
     def post(self):
-        print("Evaluating password reset request")
         try:
             self.handle_reset()
             flask.flash("Password set successfuly, you may log in now.")
@@ -84,7 +83,6 @@ class UserResetViewSet(EdapMixin, MethodView):
 
     def get(self, token):
         # Render a form to reset password
-        print("Gathering password reset data from user")
         form = ResetPasswordForm()
         form.token.data = token
         return flask.render_template(
@@ -98,7 +96,6 @@ class UserAdministrationViewSet(EdapMixin,
     @utils.authorize_only_hr_admins()
     def get(self):
         # Render a form to send email
-        print("Collecting info for password reset mail")
 
         return flask.render_template(
                 "templates/send_reset.html",
@@ -107,7 +104,6 @@ class UserAdministrationViewSet(EdapMixin,
     @utils.authorize_only_hr_admins()
     def post(self):
         # Send reset email
-        print("Sending password reset mail")
         form = SendResetEmailForm()
         if not form.validate_on_submit():
             return
@@ -203,7 +199,6 @@ class UserRetrieveViewSet(EdapMixin,
                 continue
 
             msg = f"Changed {key} to {value}"
-            print(msg)
             flask.flash(msg)
 
             user.modify(key, value)

@@ -90,8 +90,11 @@ import time
 
 def send_password_reset_email(to, data):
     msg = flask_mail.Message("password recovery", sender="intranet@cspii.org", recipients=[to])
-    token = get_reset_password_token(data, flask.current_app.config["PW_RESET_EXPIRY_SEC"])
-    msg.body = flask.render_template("templates/mail_pw_reset.txt", data=data, token=token)
+    expiry_s = flask.current_app.config["PW_RESET_EXPIRY_SEC"]
+    token = get_reset_password_token(data, expiry_s)
+    msg.body = flask.render_template(
+        "templates/mail_pw_reset.txt", data=data, token=token,
+        valid_for_minutes=expiry_s // 60)
     extensions.mail.send(msg)
 
 
@@ -114,5 +117,4 @@ def verify_reset_password_token(token, uid):
         print(str(exc))
         return False
     implied_uid = data["username"]
-    print(f"{implied_uid=} {uid=}")
     return str(implied_uid) == str(uid)

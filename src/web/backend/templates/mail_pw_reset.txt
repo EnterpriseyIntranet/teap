@@ -1,0 +1,11 @@
+Dear user,
+
+To reset your password click on the following link:
+
+{{ url_for('divisions_api.reset_api', _external=True) ~ '/' ~ token}}
+
+The link is valid for {{ valid_for_minutes }} minutes since it has been issued.
+
+If you have not requested a password reset simply ignore this message.
+
+Your Admin Team.
