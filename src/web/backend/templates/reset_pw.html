@@ -26,10 +26,9 @@
 	<p>
 	Confirm your username, and define your new password.
 	Try to pick a longer password, so it passes strength checks. See a <a href="https://www.pcmag.com/how-to/simple-tricks-to-remember-insanely-secure-passwords">pcmag password article</a> if you need inspiration.
-	This password reset page will be valid for approx. {{ time_remaining }} s.
 	</p>
 	<p>
-	<form method="POST" action="{{ url_for('divisions_api.reset_api') }}"/>
+	<form method="POST" action="{{ url_for('reset_password') }}"/>
 		{{ details_form.hidden_tag() }}
 		{{ details_form.username.label }} {{ details_form.username(size=40) }} <br/>
 		{{ details_form.new_password.label }} {{ details_form.new_password(size=20) }} <br/>

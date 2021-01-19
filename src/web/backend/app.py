@@ -92,6 +92,35 @@ def register_auth(app):
                 "templates/login.html",
                 target_url=flask.url_for("authenticate_by_ldap"), login_form=form)
 
+    @app.route("/reset_pw", methods=["POST"])
+    def reset_password():
+        from .ldap.api import handle_reset
+        form = ResetPasswordForm()
+        try:
+            if not form.validate_on_submit():
+                raise ValueError("The request is invalid.")
+            username = form.username.data
+            token = form.token.data
+            new_password = form.new_password.data
+
+            handle_reset(username, token, new_password)
+            flask.flash("Password set successfuly, you may log in now.")
+            url = flask.url_for("divisions_api.details_change")
+        except ValueError as exc:
+            flask.flash(f"Error setting password: {str(exc)}")
+            url = flask.url_for('reset_password_form', token=token)
+        return flask.redirect(url)
+
+    @app.route("/reset_pw/<token>", methods=["GET"])
+    def reset_password_form(token):
+        # Render a form to reset password
+        form = ResetPasswordForm()
+        form.token.data = token
+        return flask.render_template(
+                "templates/reset_pw.html",
+                details_form=form,
+                token=token)
+
 
 class LoginForm(flask_wtf.FlaskForm):
     next_page = wtforms.HiddenField("next")
@@ -99,6 +128,21 @@ class LoginForm(flask_wtf.FlaskForm):
             "Your username", validators=[vali.DataRequired()])
     password = wtforms.PasswordField(
             "Your password", validators=[vali.DataRequired()])
+
+
+class ResetPasswordForm(flask_wtf.FlaskForm):
+    token = wtforms.HiddenField(
+            "reset token")
+    username = wtforms.StringField(
+            "Your Username",
+            [wtforms.validators.DataRequired("The user ID is missing")])
+    new_password = wtforms.PasswordField(
+            "Your new password",
+            [wtforms.validators.EqualTo('new_password_confirm', message='Passwords must match')])
+    new_password_confirm = wtforms.PasswordField(
+            "Your new password (confirm)")
+
+
 
 
 def redirect_to_login():

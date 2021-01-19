@@ -2,7 +2,7 @@ Dear user,
 
 To reset your password click on the following link:
 
-{{ url_for('divisions_api.reset_api', _external=True) ~ '/' ~ token}}
+{{ url_for('reset_password_form', token=token, _external=True) }}
 
 The link is valid for {{ valid_for_minutes }} minutes since it has been issued.
 

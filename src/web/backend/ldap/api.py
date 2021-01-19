@@ -50,47 +50,6 @@ class UserListViewSet(EdapMixin, MethodView):
         return jsonify(res)
 
 
-class UserResetViewSet(EdapMixin, MethodView):
-    def post(self):
-        try:
-            self.handle_reset()
-            flask.flash("Password set successfuly, you may log in now.")
-        except ValueError as exc:
-            flask.flash(f"Error setting password: {str(exc)}")
-        return flask.redirect(flask.url_for("divisions_api.details_change"))
-
-    def handle_reset(self):
-        form = ResetPasswordForm()
-        if not form.validate_on_submit():
-            raise ValueError("The request is invalid.")
-
-        username = form.username.data
-        try:
-            user = LdapUser.get_from_edap(username)
-        except MultipleObjectsFound:
-            raise ValueError(f'More than 1 user(s) {username} found')
-        except ObjectDoesNotExist:
-            raise ValueError(f'User {username} does not exist')
-
-        if uid := flask_login.current_user.get_id():
-            if uid != username:
-                raise ValueError(f"You are logged in as '{uid}', which is an another user than '{username}'.")
-
-        if not verify_reset_password_token(form.token.data, username):
-            raise ValueError("The request is weird.")
-
-        user.modify_password(form.new_password.data)
-
-    def get(self, token):
-        # Render a form to reset password
-        form = ResetPasswordForm()
-        form.token.data = token
-        return flask.render_template(
-                "templates/reset_pw.html",
-                details_form=form,
-                token=token)
-
-
 class UserAdministrationViewSet(EdapMixin,
                                 MethodView):
     @utils.authorize_only_hr_admins()
@@ -398,6 +357,24 @@ class UserTeamsViewSet(EdapMixin, MethodView):
         return jsonify({'message': 'success'}), 202
 
 
+def handle_reset(username, token, new_password):
+    try:
+        user = LdapUser.get_from_edap(username)
+    except MultipleObjectsFound:
+        raise ValueError(f'More than 1 user(s) {username} found')
+    except ObjectDoesNotExist:
+        raise ValueError(f'User {username} does not exist')
+
+    if uid := flask_login.current_user.get_id():
+        if uid != username:
+            raise ValueError(f"You are logged in as '{uid}', which is an another user than '{username}'.")
+
+    if not verify_reset_password_token(token, username):
+        raise ValueError("The request is weird.")
+
+    user.modify_password(new_password)
+
+
 import io
 
 import flask
@@ -429,19 +406,6 @@ class SendResetEmailForm(flask_wtf.FlaskForm):
             "Target's Username")
     email = wtforms.StringField(
             "Target's email", [wtforms.validators.Email("You have to provide a valid e-mail address")])
-
-
-class ResetPasswordForm(flask_wtf.FlaskForm):
-    token = wtforms.HiddenField(
-            "reset token")
-    username = wtforms.StringField(
-            "Your Username",
-            [wtforms.validators.DataRequired("The user ID is missing")])
-    new_password = wtforms.PasswordField(
-            "Your new password",
-            [wtforms.validators.EqualTo('new_password_confirm', message='Passwords must match')])
-    new_password_confirm = wtforms.PasswordField(
-            "Your new password (confirm)")
 
 
 class UserForm(flask_wtf.FlaskForm):
@@ -493,10 +457,6 @@ blueprint.add_url_rule('/users/<username>/<action>', view_func=user_view, method
 user_admin = UserAdministrationViewSet.as_view('admin_api')
 blueprint.add_url_rule('/send_reset_pw', view_func=user_admin, methods=['POST'])
 blueprint.add_url_rule('/send_reset_pw', view_func=user_admin, methods=['GET'])
-
-user_reset = UserResetViewSet.as_view('reset_api')
-blueprint.add_url_rule('/reset_pw/<token>', view_func=user_reset, methods=['GET'])
-blueprint.add_url_rule('/reset_pw', view_func=user_reset, methods=['POST'])
 
 user_group_view = UserGroupViewSet.as_view('user_groups_api')
 blueprint.add_url_rule('/users/<username>/groups/', view_func=user_group_view, methods=['POST', 'DELETE'])
