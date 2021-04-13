@@ -2,7 +2,7 @@ import time
 
 from flask import Blueprint, jsonify, request
 from flask.views import MethodView
-from edap import ObjectDoesNotExist, ConstraintError, MultipleObjectsFound
+from ..edap import ObjectDoesNotExist, ConstraintError, MultipleObjectsFound
 from marshmallow import ValidationError
 
 from .. import utils

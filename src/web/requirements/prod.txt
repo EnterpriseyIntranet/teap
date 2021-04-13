@@ -4,7 +4,6 @@
 #
 #    pip-compile --output-file=prod.txt prod.in
 #
--e git+git://github.com/EnterpriseyIntranet/edap#egg=edap  # via -r prod.in
 -e git+git://github.com/EnterpriseyIntranet/nextcloud-API#egg=nextcloud  # via -r prod.in
 alembic==1.2.0            # via flask-migrate
 aniso8601==8.0.0          # via flask-restful
@@ -39,15 +38,15 @@ markupsafe==1.1.1         # via jinja2, mako
 marshmallow==3.2.0        # via -r prod.in, environs
 password-strength==0.0.3.post2  # via -r prod.in
 pillow==8.0.1             # via -r prod.in
-pyasn1-modules==0.2.6     # via python-ldap
-pyasn1==0.4.7             # via pyasn1-modules, python-ldap
+pyasn1-modules==0.2.8     # via python-ldap
+pyasn1==0.4.8             # via pyasn1-modules, python-ldap
 pycparser==2.19           # via cffi
 pyjwt==2.0.0              # via -r prod.in
 pyopenssl==17.5.0         # via flask-saml2, signxml
 python-dateutil==2.8.0    # via alembic
 python-dotenv==0.10.3     # via environs
 python-editor==1.0.4      # via alembic
-python-ldap==3.2.0        # via edap
+python-ldap==3.3.1        # via -r prod.in
 pytz==2019.2              # via flask-restful, flask-saml2
 requests==2.22.0          # via nextcloud, rocketchat-api
 rocketchat-api==0.6.34    # via -r prod.in

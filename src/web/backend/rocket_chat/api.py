@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, g
 from flask.views import MethodView
 
-from edap import ObjectDoesNotExist
+from ..edap import ObjectDoesNotExist
 
 from .. import utils
 from ..ldap.utils import EdapMixin

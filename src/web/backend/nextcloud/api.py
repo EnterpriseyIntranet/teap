@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, abort, current_app
 from flask.views import MethodView
 
-from edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
+from ..edap import ConstraintError, MultipleObjectsFound, ObjectDoesNotExist
 
 from .. import utils
 from ..ldap.utils import EdapMixin

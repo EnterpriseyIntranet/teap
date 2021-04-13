@@ -1,7 +1,7 @@
 import logging
 
 from flask import g, current_app
-import edap
+from .. import edap
 import configparser
 
 logger = logging.getLogger()

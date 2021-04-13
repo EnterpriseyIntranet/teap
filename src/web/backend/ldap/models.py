@@ -1,7 +1,7 @@
 """ Models to work with ldap objects, operated by EDAP library """
 import gzip
 
-from edap import ObjectDoesNotExist, ConstraintError
+from ..edap import ObjectDoesNotExist, ConstraintError
 from nextcloud.base import Permission as NxcPermission
 from password_strength import PasswordStats
 
@@ -671,7 +671,7 @@ class LdapTeam(EdapMixin, Team):
 
 def bootstrap_ldap():
     """ Create the basic structure """
-    import edap
+    from .. import edap
 
     e = get_edap()
     divisions = get_config_divisions()

@@ -38,7 +38,7 @@ rocketchat_API==0.*
 -e git://github.com/EnterpriseyIntranet/nextcloud-API#egg=nextcloud
 
 # EDAP
--e git://github.com/EnterpriseyIntranet/edap#egg=edap
+# -e git://github.com/EnterpriseyIntranet/edap#egg=edap
 
 # email auth
 flask-mail
@@ -46,3 +46,6 @@ pyjwt
 pillow
 
 password-strength
+
+# edap
+python-ldap
