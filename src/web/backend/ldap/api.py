@@ -142,7 +142,7 @@ class UserRetrieveViewSet(EdapMixin,
             try:
                 user.modify_password(form_dict["new_password"])
             except Exception as exc:
-                msg = f"Couldn't change password: {str(exc)}"
+                msg = flask.Markup(f"Couldn't change password: {str(exc)}")
                 flask.flash(msg)
 
         if form.avatar.data:

@@ -37,14 +37,21 @@ def _assure_folder_exists_with_permissions(nxc, folder_path, all_group_ids_permi
     return result
 
 
+PASSWORD_HINT = 'It is advisable to create passwords that are long and that are easy to remember for you, but at the same time now trivial. See the <a href="https://theworld.com/~reinhold/diceware.html">diceware passwords guide</a> that describes how to make a password with a help of a dice and a supplied word list'
+
+
 def get_password_weaknesses(pw, username=None):
     errors = []
     stats = PasswordStats(pw)
-    LEN = 10
+    LEN = 12
+    MIN_STRENGTH = 0.50
+    MIN_ENTROPY_BITS = 30
     if stats.length < LEN:
         errors.append(f"Password is too short - go for something longer than {LEN} characters")
-    if stats.strength() < 0.55 or stats.entropy_bits < 30:
-        errors.append("Password is too simple - make up something longer or more complex")
+    if stats.strength() < MIN_STRENGTH:
+        errors.append(f"Password is too simple - current strength is {stats.strength():.2g}, you need at least {MIN_STRENGTH}")
+    if stats.entropy_bits < MIN_ENTROPY_BITS:
+        errors.append(f"Password is too simple - currently it has {stats.entropy_bits} entropy bits, you need at least {MIN_ENTROPY_BITS}")
     if pw in FREQUENT_PASSWORDS:
         errors.append("This password is already on a list of common passwords, make up something else")
 
@@ -53,6 +60,8 @@ def get_password_weaknesses(pw, username=None):
 
     if not pw.isascii():
         errors.append("Don't use characters outside of the US keyboard in your password - in other words, use only ASCII printable characters in your password definition")
+    if errors:
+        errors.append(PASSWORD_HINT)
     return errors
 
 
@@ -246,6 +255,12 @@ class LdapMajorStructure(EdapMixin):
         raise NotImplementedError()
 
 
+def password_weaknesses_as_str(weaknesses):
+    weakness_list = [f"<li>{w}.</li>" for w in weaknesses]
+    msg = "The password has following weaknesses <ul>" + "\n".join(weakness_list) + "</ul>"
+    return msg
+
+
 class LdapUser(EdapMixin, User):
 
     def __init__(self, fqdn=None, *args, **kwargs):
@@ -275,7 +290,7 @@ class LdapUser(EdapMixin, User):
         """ Create user entity in ldap """
         weaknesses = get_password_weaknesses(password)
         if weaknesses:
-            msg = "The password has following weaknesses: " + ". ".join(weaknesses)
+            msg = password_weaknesses_as_str(weaknesses)
             raise ValueError(msg)
         ret = self.edap.add_user(self.uid, self.given_name, self.surname, password, self.mail, self.picture_bytes)
         return ret
@@ -306,7 +321,7 @@ class LdapUser(EdapMixin, User):
     def modify_password(self, new_value):
         weaknesses = get_password_weaknesses(new_value)
         if weaknesses:
-            msg = "The password has following weaknesses: " + ". ".join(weaknesses)
+            msg = password_weaknesses_as_str(weaknesses)
             raise ValueError(msg)
         return self.edap.modify_user(self.uid, {"userPassword": new_value})
 
