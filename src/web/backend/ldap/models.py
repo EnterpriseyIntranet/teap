@@ -164,6 +164,11 @@ class MajorStructure(GroupFolderMixin, GroupChatMixin):
     def main_folder_path(self):
         return "/".join([self.GROUP_FOLDER, self.machine_name])
 
+    def _get_main_folder_permissions(self):
+        return GENERIC_FOLDER_PERMISSIONS + [
+                (self.display_name, NxcPermission.ALL),
+        ]
+
     def create_main_folder(self):
         """
         Create subfolder in 'Franchises' folder with read-write access to members of Franchise
@@ -172,29 +177,24 @@ class MajorStructure(GroupFolderMixin, GroupChatMixin):
         nxc = get_nextcloud()
         self._assure_root_folder_exists(nxc)
 
-        main_folder_permissions = GENERIC_FOLDER_PERMISSIONS + [
-                (self.display_name, NxcPermission.ALL),
-        ]
-
         result = _assure_folder_exists_with_permissions(
-                nxc, self.main_folder_path, main_folder_permissions)
+                nxc, self.main_folder_path, self._get_main_folder_permissions())
 
         return result
+
+    def _get_dea_folder_permissions(self):
+        return [
+            (NEXTCLOUD_ADMIN_GROUP, NxcPermission.ALL),
+            (self.display_name, NxcPermission.READ),
+            (self.dea_display_name, NxcPermission.ALL),
+        ]
 
     def create_dea_folder(self):
         nxc = get_nextcloud()
         self._assure_private_folder_exists(nxc)
 
-        dea_folder_permissions = [
-            (NEXTCLOUD_ADMIN_GROUP, NxcPermission.ALL),
-            (self.display_name, NxcPermission.READ),
-        ]
-        dea_folder_permissions = dea_folder_permissions + [
-                (self.dea_display_name, NxcPermission.ALL),
-        ]
-
         result = _assure_folder_exists_with_permissions(
-                nxc, self.dea_folder_path, dea_folder_permissions)
+                nxc, self.dea_folder_path, self._get_dea_folder_permissions())
 
         return result
 
@@ -466,6 +466,12 @@ class Franchise(MajorStructure):
     GROUP_FOLDER = 'Franchises'
     DEA_GROUP_SUFFIX = "FDEA"
     ENTITY_NAME = "Franchise"
+
+    def _get_main_folder_permissions(self):
+        return [
+            (NEXTCLOUD_ADMIN_GROUP, NxcPermission.ALL),
+            (self.display_name, NxcPermission.ALL),
+        ]
 
     @property
     def main_folder_path(self):
