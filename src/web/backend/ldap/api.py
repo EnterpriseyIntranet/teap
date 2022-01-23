@@ -12,7 +12,7 @@ from .api_serializers import api_franchise_schema, api_user_schema, api_users_sc
     api_divisions_schema, api_teams_schema
 
 from .models import LdapDivision, LdapFranchise, LdapUser
-from .utils import get_config_divisions, merge_divisions, EdapMixin, send_password_reset_email, get_edap, verify_reset_password_token
+from .utils import get_config_divisions, merge_divisions, EdapMixin, send_password_reset_email, get_edap, verify_reset_password_token, PWResetEligibilityExc
 
 blueprint = Blueprint('divisions_api', __name__, url_prefix='/api/ldap/')
 blueprint.json_encoder = utils.EncoderWithBytes
@@ -369,8 +369,12 @@ def handle_reset(username, token, new_password):
         if uid != username:
             raise ValueError(f"You are logged in as '{uid}', which is an another user than '{username}'.")
 
-    if not verify_reset_password_token(token, username):
-        raise ValueError("The request is weird.")
+    try:
+        if not verify_reset_password_token(token, username):
+            raise ValueError("The request is weird.")
+    except PWResetEligibilityExc as exc:
+        msg = f"There was a problem with the reset request: {str(exc)}"
+        raise ValueError(msg)
 
     user.modify_password(new_password)
 
@@ -405,7 +409,8 @@ class SendResetEmailForm(flask_wtf.FlaskForm):
     username = wtforms.StringField(
             "Target's Username")
     email = wtforms.StringField(
-            "Target's email", [wtforms.validators.Email("You have to provide a valid e-mail address")])
+            "Target's email")
+            # "Target's email", [wtforms.validators.Email("You have to provide a valid e-mail address")])
 
 
 class UserForm(flask_wtf.FlaskForm):

@@ -108,6 +108,10 @@ def get_reset_password_token(data, expires_in):
         current_app.config['SECRET_KEY'], algorithm='HS256')
 
 
+class PWResetEligibilityExc(RuntimeError):
+    pass
+
+
 def verify_reset_password_token(token, uid):
     try:
         data = jwt.decode(
@@ -115,6 +119,13 @@ def verify_reset_password_token(token, uid):
             algorithms=['HS256'])
     except Exception as exc:
         print(str(exc))
-        return False
-    implied_uid = data["username"]
-    return str(implied_uid) == str(uid)
+        msg = "The request was not valid, perhaps it has already expired?"
+        raise PWResetEligibilityExc(msg)
+    implied_uid = str(data["username"]).strip()
+    if implied_uid.endswith("@cspii.org"):
+        implied_uid = implied_uid.split("@")
+        implied_uid = "@".join(implied_uid[:-1])
+    if str(implied_uid) != str(uid):
+        msg = "Please supply the correct username that is paired with the request"
+        raise PWResetEligibilityExc(msg)
+    return True
