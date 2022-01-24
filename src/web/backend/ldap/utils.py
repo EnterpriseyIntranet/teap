@@ -119,7 +119,7 @@ def verify_reset_password_token(token, uid):
             algorithms=['HS256'])
     except Exception as exc:
         print(str(exc))
-        msg = "The request was not valid, perhaps it has already expired?"
+        msg = "The request was not valid, perhaps you haven't copied the whole request link into the browser, or it has already expired?"
         raise PWResetEligibilityExc(msg)
     implied_uid = str(data["username"]).strip()
     if implied_uid.endswith("@cspii.org"):

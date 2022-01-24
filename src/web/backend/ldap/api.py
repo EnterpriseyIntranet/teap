@@ -359,6 +359,13 @@ class UserTeamsViewSet(EdapMixin, MethodView):
 
 def handle_reset(username, token, new_password):
     try:
+        if not verify_reset_password_token(token, username):
+            raise ValueError("The request is weird.")
+    except PWResetEligibilityExc as exc:
+        msg = f"There was a problem with the reset request: {str(exc)}"
+        raise ValueError(msg)
+
+    try:
         user = LdapUser.get_from_edap(username)
     except MultipleObjectsFound:
         raise ValueError(f'More than 1 user(s) {username} found')
@@ -368,13 +375,6 @@ def handle_reset(username, token, new_password):
     if uid := flask_login.current_user.get_id():
         if uid != username:
             raise ValueError(f"You are logged in as '{uid}', which is an another user than '{username}'.")
-
-    try:
-        if not verify_reset_password_token(token, username):
-            raise ValueError("The request is weird.")
-    except PWResetEligibilityExc as exc:
-        msg = f"There was a problem with the reset request: {str(exc)}"
-        raise ValueError(msg)
 
     user.modify_password(new_password)
 

@@ -4,6 +4,7 @@ To reset your password click on the following link:
 
 {{ url_for('reset_password_form', token=token, _external=True) }}
 
+Some e-mail clients may break this request link into multiple lines - in that case, you have to assemble those lines, so the link that you enter to the browser is one whole line without spaces.
 The link is valid for {{ valid_for_minutes }} minutes since it has been issued.
 
 If you have not requested a password reset simply ignore this message.
